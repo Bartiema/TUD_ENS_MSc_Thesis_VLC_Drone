@@ -1,0 +1,44 @@
+\chapter{Real-World Implementation \& Experiments}
+\label{chp:realworld}
+
+\section{Sim-to-Real Adaptation}
+
+The primary adaptation from simulation to the real world is the switch from raw light intensity to SNR at the modulated beacon frequency, which isolates the target light from ambient sources and background illumination.
+
+A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise and reflection artefacts---which occur at frequencies above the Nyquist limit of the ADC---from aliasing into the FFT and corrupting the SNR estimate.
+
+Beyond the base algorithm's existing DC removal and Hamming window, three additional filters were introduced: block-based estimation, noise floor estimation, and per-channel magnitude IIR filters, to improve signal stability during flight.
+
+\section{Experimental Setup}
+
+Real-world experiments are conducted with two modulated light beacons positioned in a room, with the CrazyFlie~2.1 carrying the custom photodiode PCB as the sensing payload.
+
+\section{Experiment 5: Filter Validation}
+
+\textit{Question: do the additional filters improve signal stability during flight compared to the base algorithm alone?}
+
+Raw signal recordings with and without the block estimation, noise floor estimation, and IIR filters applied are compared, demonstrating the reduction in noise and signal variance achieved by each filtering stage.
+
+\section{Experiment 6: SNR Field Mapping}
+
+\textit{Question: does the SNR field in the real room form a navigable gradient toward each light source?}
+
+Dedicated data-gathering flights are used to construct spatial heatmaps of the SNR field, confirming that intensity increases monotonically toward each beacon and that a navigable gradient exists in the real environment.
+
+\section{Experiment 7: Effect of Ambient Lighting}
+
+\textit{Question: how does ambient room lighting affect the SNR field and navigability?}
+
+Comparative flights with ambient lights on and off reveal the degree to which background illumination degrades the SNR signal and the robustness of the modulation-based filtering approach.
+
+\section{Experiment 8: Sequential Two-Light Navigation}
+
+\textit{Question: does the fused controller successfully navigate to two light sources in sequence in an unobstructed real-world environment?}
+
+The drone successfully navigates to each beacon in turn, validating that the full state machine operates correctly on the real platform in open-space conditions.
+
+\section{Experiment 9: Obstacle Avoidance}
+
+\textit{Question: does the gradient-based map allow the drone to navigate around a physical obstacle to reach the light source?}
+
+A single flight with a physical obstacle placed between the drone's starting position and the first beacon demonstrates that the fused controller navigates around the obstruction using the accumulated light intensity map.

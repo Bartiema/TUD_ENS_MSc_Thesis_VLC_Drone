@@ -1,0 +1,34 @@
+\chapter{Simulation Experiments}
+\label{chp:simulation}
+
+\section{Experimental Setup}
+
+All simulation experiments are conducted in the Webots environment described in Chapter~\ref{chp:background}, using a single overhead light source with a known position as the navigation target.
+
+\section{Experiment 1: Baseline Bearing-Only Navigation}
+
+\textit{Question: how does the bearing-only controller behave in open space and in the presence of obstacles?}
+
+The bearing-only controller navigates successfully toward the light source in unobstructed conditions but fails to navigate around obstacles, as it has no spatial memory of the light environment and cannot recover a path once line-of-sight is disrupted.
+
+\section{Experiment 2: Dense Probe Map Collection}
+
+\textit{Question: does the light intensity field form a navigable gradient, and what does it look like under ideal sampling conditions?}
+
+A systematic grid scan produces a dense probe map of the light intensity field, confirming a consistent gradient toward the source and providing an ideal-coverage reference dataset for evaluating gradient estimation methods.
+
+\section{Experiment 3: Gradient Estimation Method Comparison}
+
+\textit{Question: which of the five gradient estimation methods most accurately recovers the gradient direction from the dense probe map?}
+
+Five methods---least squares plane fit, weighted least squares, robust RANSAC, local polynomial fit, and finite differences---are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
+
+\textit{Question: how does gradient estimation quality degrade when the drone can only use the map points visited along its flight path?}
+
+Gradient quality is re-evaluated using only the flight-path-visited subset of map points, quantifying the accuracy penalty of the realistic sparse coverage scenario compared to the ideal full-map case.
+
+\section{Experiment 4: Fused Controller Validation}
+
+\textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
+
+The fused controller is validated in simulation by demonstrating successful navigation around an obstacle, with the state machine correctly transitioning through modes as the drone's map coverage and bearing signal quality evolve.

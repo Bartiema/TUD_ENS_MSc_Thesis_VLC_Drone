@@ -1,4 +1,12 @@
 \chapter{Future Work}
 \label{chp:futurework}
 
-Future work.
+A more capable transimpedance amplifier circuit with adjustable gain or a wider dynamic range could substantially extend the operational range of the system by addressing both the saturation and sensitivity limitations of the current sensor design.
+
+Extending the navigation algorithm to three dimensions is a natural next step, with the gradient map component being more tractable to extend than the bearing angle hardware, which would require a 3D photodiode array.
+
+Testing the fused controller against more complex obstacle configurations---multiple obstacles, narrow corridors---would provide a more complete characterisation of its navigation performance.
+
+A systematic study of the effect of each tunable parameter on navigation performance would provide practical guidelines for deploying the controller in new environments.
+
+Attitude compensation and a redesigned photodiode geometry represent a combined hardware improvement opportunity: the current horizontal orientation minimises overhead ambient light interference but sacrifices sensitivity at non-horizontal incidence angles, and faster, more agile flight would require active compensation for the bearing error introduced by drone tilt.

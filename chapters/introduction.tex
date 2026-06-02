@@ -1,4 +1,32 @@
 \chapter{Introduction}
 \label{chp:introduction}
 
-Introduction goes here.
+\section{Motivation \& Problem Statement}
+
+Micro-UAVs have expanded into applications such as indoor inspection, environmental monitoring, and inventory management, yet their capabilities remain constrained by short flight endurance and restricted navigation in GPS-denied environments.
+
+Light-based navigation offers a cost-effective solution for GPS-denied environments, as only a simple modulator is needed to turn existing lights into navigation beacons while the drone carries all sensing hardware.
+
+Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to bearing estimation, which does not support spatial navigation around obstacles.
+
+Recent work has shown that a single light source can serve as a navigation beacon for micro-drones using a photodiode-based bearing estimation algorithm, but the resulting navigation remains reactive and does not exploit spatial information about the light environment.
+
+This thesis addresses this limitation by introducing a gradient-ascent controller that fuses bearing information with a spatial light intensity map, enabling more robust and tunable autonomous navigation toward a light source.
+
+\section{Contributions}
+
+This thesis contributes: (1) a fused gradient-ascent navigation controller with tunable parameters for single-light-source navigation; (2) a miniaturised photodiode PCB designed to fit the CrazyFlie~2.1 platform; and (3) a real-world experimental validation on a micro-drone.
+
+\section{Related Work}
+
+Visible-light communication systems have achieved centimetre-level indoor localisation accuracy, but typically require dense lighting infrastructure and are not designed for deployment on weight-constrained micro-drones.
+
+Alternative GPS-denied navigation approaches for drones---including UWB, WiFi fingerprinting, and visual SLAM---offer high accuracy but impose significant computational or infrastructure costs that are prohibitive for micro-drones.
+
+Photodiode-based angle-of-arrival estimation provides a lightweight mechanism for determining the direction of a single light source, with prior work showing that 8 photodiodes are sufficient for reliable bearing estimates.
+
+Gradient-based and potential-field navigation methods have been widely used in robotics to guide agents toward a goal using a spatial map, but have not been applied to light-intensity fields for drone navigation.
+
+\section{Thesis Overview}
+
+The remainder of this thesis is organised as follows: Chapter~\ref{chp:background} presents the background theory; Chapter~\ref{chp:algorithm} describes the algorithm design; Chapter~\ref{chp:hardware} covers the PCB hardware design; Chapter~\ref{chp:simulation} presents the simulation experiments; Chapter~\ref{chp:realworld} presents the real-world implementation and experiments; and Chapter~\ref{chp:conclusions} states the conclusions.

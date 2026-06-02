@@ -1,4 +1,18 @@
 \chapter{Conclusions}
 \label{chp:conclusions}
 
-Conculsions.
+\section{Summary}
+
+This thesis presented a fused gradient-ascent navigation controller that enables a micro-drone to navigate toward a light source using a combination of bearing angle estimation and a self-built light intensity map.
+
+The controller was validated in simulation, demonstrating obstacle avoidance capability that the bearing-only baseline cannot achieve, and then successfully ported to a CrazyFlie~2.1 equipped with a custom miniaturised photodiode PCB.
+
+Real-world experiments confirmed that the SNR-based signal processing pipeline effectively isolates the target beacon from ambient light, and that the fused controller navigates correctly in both open-space and single-obstacle scenarios.
+
+\section{Limitations}
+
+The operating range of the system is constrained by the photodiode sensor circuit: at large distances the SNR between the modulated beacon and ambient light becomes insufficient for reliable detection, while at close range the photodiodes saturate, creating a narrow effective operating band.
+
+Navigation is currently limited to two dimensions, as extending both the bearing angle algorithm and the gradient map to 3D would require additional custom hardware and significantly increased computational complexity.
+
+Real-world obstacle avoidance was demonstrated for only a single obstacle configuration, leaving the performance of the controller in more complex environments unvalidated.

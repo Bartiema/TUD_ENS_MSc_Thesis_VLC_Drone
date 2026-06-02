@@ -1,0 +1,32 @@
+\chapter{Algorithm Design}
+\label{chp:algorithm}
+
+\section{System Overview}
+
+The navigation controller fuses a bearing angle signal and a gradient ascent signal through a state machine that selects the appropriate navigation mode based on signal quality and map coverage.
+
+% TODO: Figure --- block diagram showing state machine, map, bearing input, gradient input, and heading output
+
+\section{Light Intensity Map}
+
+As the drone flies, it accumulates a spatial map by storing the maximum measured signal-to-noise ratio at each visited location, which increases monotonically as the drone approaches the light source.
+
+In simulation, direct light intensity is used in place of SNR, as the simulated environment uses an unmodulated light source where SNR is not a meaningful quantity.
+
+\section{Controller State Machine}
+
+When both map coverage and bearing signal quality fall below their respective thresholds, the drone executes a predefined search pattern to gather initial measurements and populate the map.
+
+Once the bearing signal exceeds its quality threshold but the map remains insufficiently populated, the controller drives the drone using the bearing angle alone.
+
+When both the bearing signal and map coverage are sufficient, the controller outputs a heading angle computed as a weighted sum of the bearing direction and the gradient direction from the map.
+
+If the bearing signal is subsequently lost after sufficient map coverage has been accumulated, the controller falls back to pure gradient ascent on the stored map to continue navigating toward the light.
+
+\section{Gradient Estimation}
+
+The local gradient of the light intensity map is estimated by fitting a weighted least-squares plane to the intensity measurements in the neighbourhood of the drone's current position, yielding a continuous gradient direction.
+
+\section{Control Output}
+
+The controller outputs a target heading angle; forward motion is either set to a fixed speed or suppressed entirely depending on the angular error between the desired and current heading.

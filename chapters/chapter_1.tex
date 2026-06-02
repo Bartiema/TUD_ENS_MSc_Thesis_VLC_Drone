@@ -1,52 +1,26 @@
-\chapter{CHAPTER TITLE}
-\label{chp:chapter_1}
+\chapter{Background \& Theory}
+\label{chp:background}
 
-This chapter describes the ... In Section~\ref{sec:SECTIONTITLE}, examples are given on how to use tables and figures in this MSc thesis.
+\section{Visible Light Communication \& Sensing}
 
-\section{SECTION TITLE}
-\label{sec:SECTIONTITLE}
+Visible light communication uses modulated light sources to transmit data, enabling a light source to serve simultaneously as illumination and a detectable navigation beacon.
 
+The spatial distribution of light intensity from a point source is described by the Lambertian model, which defines how intensity decays as a function of distance and angle from the source.
 
-Define models with math, such that
-%
-\begin{equation}
-x = a^2 + b^2,
-\label{eq:EQUATION}
-\end{equation}
-%
-where $a$ and $b$ are your parameters, define your system.
+Photodiodes convert incident light intensity into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
 
-Remarks on style:
+\section{Bearing Angle Estimation}
 
-\begin{enumerate}
-	\item use `Section` name to refer to sections when citing (so Section~\ref{sec:SECTIONTITLE} not Sec.~\ref{sec:SECTIONTITLE} or Subsection~\ref{sec:SECTIONTITLE}); Same comment applies to Tables, Algorithms and Figures
-	\item Tables and figures must be at the top of the page---use [t] marker (not [h], for `here`); 
-	\item Every caption should end with a period;
-	\item Encapsulate equations in `()` brackets and do not add word `equation before` (therefore `in~(\ref{eq:EQUATION})`, not `in Equation~\ref{eq:EQUATION}` or in Eq.~\ref{eq:EQUATION});
-	\item Equations are sentences, so punctuation applies at the end of it (comma, semicolon or full-stop).
-\end{enumerate}
+Prior work introduced a bearing angle estimation algorithm using a ring of 8 photodiodes that computes the relative angle toward a light source from the differential intensity readings across the array.
 
-Here is a simple table
+The bearing angle provides a single scalar direction toward the light source but contains no spatial information about the light environment; when deploying multiple beacons, their modulation frequencies must be chosen to avoid harmonic relationships, as the FFT cannot distinguish a frequency from its multiples.
 
-\begin{table}[t]
-\centering
-\begin{tabular}{| l | c | r |}
-\hline
-left aligned & centred & right aligned \\
-\hline \hline
-12 & 34 & 56 \\
-\hline
-\end{tabular}
-\caption{Complete sentence describing the tabular data. Caption should summarize the conclusions of the result.}
-\label{tab:table_1}
-\end{table}
+\section{Gradient-Based Source Seeking}
 
-Here is a simple figure.
+Gradient-based source seeking navigates an agent toward a scalar field maximum by estimating and following the local gradient of that field.
 
-\begin{figure}[t]
-\includegraphics[width=\textwidth]{template-pics/tud-es-logo-tikz/tud-es-logo}
-\caption{Complete sentence describing the figure thoroughly. Caption should summarize the conclusions of the result.}
-\label{fig:example-figure}
-\end{figure}
+Plane-fitting gradient estimation approximates the local gradient by fitting a least-squares plane to nearby light intensity measurements, yielding a continuous gradient direction without requiring deliberate perturbations.
 
-Citations are here~\cite{polastre2004analysis,powercast_website,hester2016persistent,schaper_msc_thesis_2017,dementyev_uist_2016}. See `bib/MyMScTUDESThesisBibFile.bib` file for a list of requirements when typesetting a bibliography.
+\section{Simulation Environment}
+
+The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.
