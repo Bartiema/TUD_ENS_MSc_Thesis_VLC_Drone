@@ -3,7 +3,16 @@
 
 \section{Experimental Setup}
 
-All simulation experiments are conducted in the Webots environment described in Chapter~\ref{chp:background}, using a single overhead light source with a known position as the navigation target.
+The simulation experiments are designed to probe the central challenges of single-light navigation: navigating around obstacles, and recovering a reliable gradient from the sparse measurements gathered along a flight path, which first requires that the light field forms a navigable gradient at all.
+
+All experiments share a single setup in the Webots environment described in Chapter~\ref{chp:background}: a single overhead light source with a known position serves as the navigation target, providing a controlled setting in which each challenge can be isolated and tested (Figure~\ref{fig:sim-setup}).
+
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.6\textwidth]{Webots simulation setup --- single overhead light source, drone start pose, and obstacle placement}
+    \caption{Shared simulation experiment setup used across all simulation experiments.}
+    \label{fig:sim-setup}
+\end{figure}
 
 \section{Experiment 1: Baseline Bearing-Only Navigation}
 
@@ -21,7 +30,7 @@ A systematic grid scan produces a dense probe map of the light intensity field, 
 
 \textit{Question: which of the five gradient estimation methods most accurately recovers the gradient direction from the dense probe map?}
 
-Five methods---least squares plane fit, weighted least squares, robust RANSAC, local polynomial fit, and finite differences---are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
+The five candidate gradient estimation methods introduced in Chapter~\ref{chp:algorithm} are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
 
 \textit{Question: how does gradient estimation quality degrade when the drone can only use the map points visited along its flight path?}
 

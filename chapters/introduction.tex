@@ -3,11 +3,11 @@
 
 \section{Motivation \& Problem Statement}
 
-Micro-UAVs have expanded into applications such as indoor inspection, environmental monitoring, and inventory management, yet their capabilities remain constrained by short flight endurance and restricted navigation in GPS-denied environments.
+Micro-UAVs have expanded into applications such as indoor inspection, environmental monitoring, and inventory management, yet their capabilities remain constrained by short flight endurance and by restricted navigation in GPS-denied environments such as indoor greenhouses, where GPS is not accurate enough to provide the navigation these tasks require.
 
-Light-based navigation offers a cost-effective solution for GPS-denied environments, as only a simple modulator is needed to turn existing lights into navigation beacons while the drone carries all sensing hardware.
+Light-based navigation requires only a simple modulator to turn existing lights into navigation beacons while the drone carries all sensing hardware, unlike other positioning and navigation systems that demand a far larger investment of infrastructure, resources, and time.
 
-Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to bearing estimation, which does not support spatial navigation around obstacles.
+Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to simple target tracking and cannot navigate around obstacles.
 
 Recent work has shown that a single light source can serve as a navigation beacon for micro-drones using a photodiode-based bearing estimation algorithm, but the resulting navigation remains reactive and does not exploit spatial information about the light environment.
 
@@ -15,17 +15,13 @@ This thesis addresses this limitation by introducing a gradient-ascent controlle
 
 \section{Contributions}
 
-This thesis contributes: (1) a fused gradient-ascent navigation controller with tunable parameters for single-light-source navigation; (2) a miniaturised photodiode PCB designed to fit the CrazyFlie~2.1 platform; and (3) a real-world experimental validation on a micro-drone.
+This thesis contributes: (1) a miniaturised photodiode PCB designed for weight-, size-, and power-constrained micro-drones; (2) a fused gradient-ascent navigation controller with tunable parameters for single-light-source navigation; and (3) experimental validation in both simulation and the real world on a micro-drone.
 
 \section{Related Work}
 
-Visible-light communication systems have achieved centimetre-level indoor localisation accuracy, but typically require dense lighting infrastructure and are not designed for deployment on weight-constrained micro-drones.
+This thesis draws on three threads of prior work---VLC-based indoor localisation, photodiode-based bearing estimation, and gradient-based source seeking---which are examined in detail in Chapter~\ref{chp:background}, and it is distinguished by combining single-light-source bearing sensing with a self-built gradient map to enable obstacle-aware navigation.
 
-Alternative GPS-denied navigation approaches for drones---including UWB, WiFi fingerprinting, and visual SLAM---offer high accuracy but impose significant computational or infrastructure costs that are prohibitive for micro-drones.
-
-Photodiode-based angle-of-arrival estimation provides a lightweight mechanism for determining the direction of a single light source, with prior work showing that 8 photodiodes are sufficient for reliable bearing estimates.
-
-Gradient-based and potential-field navigation methods have been widely used in robotics to guide agents toward a goal using a spatial map, but have not been applied to light-intensity fields for drone navigation.
+Alternative GPS-denied navigation approaches for drones---including UWB, WiFi fingerprinting, and visual SLAM---offer high accuracy but impose computational or infrastructure costs that are prohibitive for micro-drones.
 
 \section{Thesis Overview}
 

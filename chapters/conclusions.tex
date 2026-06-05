@@ -13,6 +13,10 @@ Real-world experiments confirmed that the SNR-based signal processing pipeline e
 
 The operating range of the system is constrained by the photodiode sensor circuit: at large distances the SNR between the modulated beacon and ambient light becomes insufficient for reliable detection, while at close range the photodiodes saturate, creating a narrow effective operating band.
 
-Navigation is currently limited to two dimensions, as extending both the bearing angle algorithm and the gradient map to 3D would require additional custom hardware and significantly increased computational complexity.
+Navigation is currently limited to a fixed flight altitude, so the bearing estimate and the gradient map the drone produces are both two-dimensional.
 
-Real-world obstacle avoidance was demonstrated for only a single obstacle configuration, leaving the performance of the controller in more complex environments unvalidated.
+Extending to full three-dimensional navigation would require a 3D gradient map and additional photodiodes to sense elevation---ideally a full spherical arrangement rather than the current horizontal ring---along with significantly increased computational complexity.
+
+Real-world obstacle avoidance and multi-waypoint navigation were each demonstrated successfully, showing that the controller reliably performs the core tasks it was designed for.
+
+Validating it across more complex, multi-obstacle environments is left as future work to push an already-working system toward optimal performance.

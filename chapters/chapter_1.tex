@@ -5,22 +5,30 @@
 
 Visible light communication uses modulated light sources to transmit data, enabling a light source to serve simultaneously as illumination and a detectable navigation beacon.
 
-The spatial distribution of light intensity from a point source is described by the Lambertian model, which defines how intensity decays as a function of distance and angle from the source.
+The intensity received from a single light source falls off with both distance and angle according to the Lambertian model, making a single intensity reading ambiguous and forcing conventional light-positioning systems to rely on multiple overlapping light sources~\cite{}.
 
-Photodiodes convert incident light intensity into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
-
-\section{Bearing Angle Estimation}
-
-Prior work introduced a bearing angle estimation algorithm using a ring of 8 photodiodes that computes the relative angle toward a light source from the differential intensity readings across the array.
-
-The bearing angle provides a single scalar direction toward the light source but contains no spatial information about the light environment; when deploying multiple beacons, their modulation frequencies must be chosen to avoid harmonic relationships, as the FFT cannot distinguish a frequency from its multiples.
-
-\section{Gradient-Based Source Seeking}
-
-Gradient-based source seeking navigates an agent toward a scalar field maximum by estimating and following the local gradient of that field.
-
-Plane-fitting gradient estimation approximates the local gradient by fitting a least-squares plane to nearby light intensity measurements, yielding a continuous gradient direction without requiring deliberate perturbations.
+Prior light-based approaches frame the problem as positioning---computing an absolute location from multiple light references---whereas this thesis frames it as navigation, moving toward a single light source using directional and gradient cues without computing an absolute position.
 
 \section{Simulation Environment}
 
 The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.
+
+Simulation provides a reproducible, hardware-independent, and reasonably accurate environment in which the navigation algorithms can be developed and tested before deployment on hardware.
+
+\section{Bearing Angle Estimation}
+
+Photodiodes convert incident light into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
+
+Prior work introduced a bearing angle estimation algorithm that uses a ring of photodiodes to compute the relative angle toward a light source from the differential intensity readings across the array.
+
+Array-based direction estimation is well established for radio signals such as Bluetooth, WiFi, and GPS, but remains comparatively underexplored for visible light~\cite{}.
+
+The bearing angle provides a single scalar direction toward the light source but contains no spatial information about the light environment.
+
+\section{Gradient-Based Source Seeking}
+
+Gradient-based source seeking guides an agent toward the maximum of a scalar field, such as the intensity field around a light source.
+
+The agent repeatedly estimates the direction of steepest increase and moves along it to climb toward the source.
+
+Because the field is not known in advance, the gradient is estimated from light measurements collected along the agent's path.
