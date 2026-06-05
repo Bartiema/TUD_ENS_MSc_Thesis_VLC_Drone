@@ -53,7 +53,27 @@
 
 % for url's use "\url{http://www.google.com/}"
 \usepackage{url}
-\usepackage[plainpages=false]{hyperref} 
+\usepackage[plainpages=false]{hyperref}
+
+% --- Review/annotation notes ---------------------------------------------
+% \todo{text}            -> coloured note in the margin
+% \todo[inline]{text}    -> coloured banner across the text
+% \missingfigure{text}   -> placeholder box for a figure you still owe
+% \listoftodos           -> auto-generated index of every note (see below)
+% For the FINAL version, switch to \usepackage[disable]{todonotes} to hide
+% every note (and the list) in one go without deleting them.
+% textsize=small keeps margin notes compact so fewer get clipped at the page edge.
+\usepackage[textsize=small]{todonotes}
+
+% Highlight a SPECIFIC span of words and attach a note:
+%   \hlnote{words to highlight}{SHORT comment}   -> note in the margin
+%   \hlnotein{words to highlight}{LONG comment}  -> note as an inline banner
+% Use \hlnotein for long comments: margin notes get truncated near the page
+% bottom, inline banners never do.
+\usepackage{soul}
+\sethlcolor{yellow}
+\newcommand{\hlnote}[2]{\hl{#1}\todo{#2}}
+\newcommand{\hlnotein}[2]{\hl{#1}\todo[inline]{#2}}
 
 % Information that will be filled in at various points in the report
 \newcommand{\reportTitle}{Drawn to the Light: Autonomous Optical Navigation for Micro-Drones}

@@ -3,15 +3,21 @@
 
 \section{Sim-to-Real Adaptation}
 
-The primary adaptation from simulation to the real world is the switch from raw light intensity to SNR at the modulated beacon frequency, which isolates the target light from ambient sources and background illumination.
+\hlnote{The primary adaptation from simulation to the real world}{I would do this instead. not speaking about
+the sim to real adaptation, just talk about real world implementation challenge} is the switch from raw light intensity to SNR at the modulated beacon frequency, which isolates the target light 
+from ambient sources and background illumination.
 
-A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise and reflection artefacts---which occur at frequencies above the Nyquist limit of the ADC---from aliasing into the FFT and corrupting the SNR estimate.
+A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise
+and reflection artefacts---which occur at frequencies above the Nyquist limit of the ADC---from 
+aliasing into the FFT and corrupting the SNR estimate.
 
 Beyond the base algorithm's existing DC removal and Hamming window, three additional filters were introduced: block-based estimation, noise floor estimation, and per-channel magnitude IIR filters, to improve signal stability during flight.
 
 \section{Experimental Setup}
 
-Real-world experiments are conducted with two modulated light beacons positioned in a room, with the CrazyFlie~2.1 carrying the custom photodiode PCB as the sensing payload.
+\hlnote{Real-world experiments}{its better to split this to two cases and talk about the expriment} are 
+conducted with two modulated light beacons positioned in a room, 
+with the CrazyFlie~2.1 carrying the custom photodiode PCB as the sensing payload.
 
 \section{Experiment 5: Filter Validation}
 
@@ -23,7 +29,9 @@ Raw signal recordings with and without the block estimation, noise floor estimat
 
 \textit{Question: does the SNR field in the real room form a navigable gradient toward each light source?}
 
-Dedicated data-gathering flights are used to construct spatial heatmaps of the SNR field, confirming that intensity increases monotonically toward each beacon and that a navigable gradient exists in the real environment.
+\hlnote{Dedicated data-gathering}{This is more for the gradient one. bring it up again and then we can talk about the setup} flights 
+are used to construct spatial heatmaps of the SNR field, confirming that intensity increases monotonically to
+ward each beacon and that a navigable gradient exists in the real environment.
 
 \section{Experiment 7: Effect of Ambient Lighting}
 
@@ -42,3 +50,6 @@ The drone successfully navigates to each beacon in turn, validating that the ful
 \textit{Question: does the gradient-based map allow the drone to navigate around a physical obstacle to reach the light source?}
 
 A single flight with a physical obstacle placed between the drone's starting position and the first beacon demonstrates that the fused controller navigates around the obstruction using the accumulated light intensity map.
+
+\hlnotein{reorder}{from my opnion. all the section should be reorder majorly. the goal is more simple. two goal:
+two target traverse and obstacle avoidance. we should surrounding this two and talk about the experiment.}

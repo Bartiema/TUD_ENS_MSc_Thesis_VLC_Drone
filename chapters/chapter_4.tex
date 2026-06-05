@@ -3,25 +3,32 @@
 
 \section{Experimental Setup}
 
-All simulation experiments are conducted in the Webots environment described in Chapter~\ref{chp:background}, using a single overhead light source with a known position as the navigation target.
+All simulation experiments are conducted in the Webots environment described in Chapter~\ref{chp:background},
+ \hlnotein{using a single overhead light source}{please talk detail here, or say we mentioned in before but the more detail here. and why we pick this setup? the better way is bring up the potential 
+ challenges, and then we talk about how we setup the simulation to test the challenge all in this setup} with a known position as the navigation target.
 
 \section{Experiment 1: Baseline Bearing-Only Navigation}
 
 \textit{Question: how does the bearing-only controller behave in open space and in the presence of obstacles?}
 
-The bearing-only controller navigates successfully toward the light source in unobstructed conditions but fails to navigate around obstacles, as it has no spatial memory of the light environment and cannot recover a path once line-of-sight is disrupted.
+The bearing-only controller navigates successfully toward the light source in unobstructed conditions 
+but fails to navigate around obstacles, as it has no spatial memory of the light environment and
+cannot recover a path once line-of-sight is disrupted.
 
 \section{Experiment 2: Dense Probe Map Collection}
 
 \textit{Question: does the light intensity field form a navigable gradient, and what does it look like under ideal sampling conditions?}
 
-A systematic grid scan produces a dense probe map of the light intensity field, confirming a consistent gradient toward the source and providing an ideal-coverage reference dataset for evaluating gradient estimation methods.
+A systematic grid scan produces a dense probe map of the light intensity field,
+confirming a consistent gradient toward the source and providing an ideal-coverage
+reference dataset for evaluating gradient estimation methods.
 
 \section{Experiment 3: Gradient Estimation Method Comparison}
 
 \textit{Question: which of the five gradient estimation methods most accurately recovers the gradient direction from the dense probe map?}
 
-Five methods---least squares plane fit, weighted least squares, robust RANSAC, local polynomial fit, and finite differences---are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
+\hlnotein{Five methods}{I would mentioned this in algorithm section. Here more like we tried to test these implementation and report the performance}---least squares plane fit, 
+weighted least squares, robust RANSAC, local polynomial fit, and finite differences---are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
 
 \textit{Question: how does gradient estimation quality degrade when the drone can only use the map points visited along its flight path?}
 

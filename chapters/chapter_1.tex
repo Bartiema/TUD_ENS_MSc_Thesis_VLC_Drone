@@ -3,24 +3,48 @@
 
 \section{Visible Light Communication \& Sensing}
 
-Visible light communication uses modulated light sources to transmit data, enabling a light source to serve simultaneously as illumination and a detectable navigation beacon.
+Visible light communication uses modulated light sources to transmit data, 
+enabling a light source to serve simultaneously as illumination and a detectable 
+navigation beacon.
 
-The spatial distribution of light intensity from a point source is described by the Lambertian model, which defines how intensity decays as a function of distance and angle from the source.
+\hlnotein{The spatial distribution of light intensity from a point source 
+is described by the Lambertian model, which defines how intensity 
+decays as a function of distance and angle from the source.}{Instead of dive into the Lambertian model,
+I would instead just talk about it a bit, a more important point is that due to this Lambertian mode, 
+how it affects or make other approach limited to multiple light overlapping to make it work.}
 
-Photodiodes convert incident light intensity into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
+\hlnotein{Photodiodes convert incident light intensity into a measurable electrical signal, 
+and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.}{I think this
+paragraph can instad talk about what is the difference of our approach. What I mean is previous approach use light as
+positioning system, our approach is more close to navigation system.}
 
 \section{Bearing Angle Estimation}
 
-Prior work introduced a bearing angle estimation algorithm using a ring of 8 photodiodes that computes the relative angle toward a light source from the differential intensity readings across the array.
+\hlnotein{Prior work introduced a bearing angle estimation algorithm using a ring of 8 photodiodes 
+that computes the relative angle toward a light source from the differential intensity readings across the array.}{No
+need to talk about "8" phtodiodes here. more important thing is how to use sensor array to estimate the direction. 
+Though we are almost the first one to do this with light, there are papers doing similar approach using other sensors.}
 
-The bearing angle provides a single scalar direction toward the light source but contains no spatial information about the light environment; when deploying multiple beacons, their modulation frequencies must be chosen to avoid harmonic relationships, as the FFT cannot distinguish a frequency from its multiples.
+The bearing angle provides a single scalar direction toward the light source but 
+contains no spatial information about the light environment; \hlnotein{when deploying multiple beacons,
+their modulation frequencies must be chosen to avoid harmonic relationships, 
+as the FFT cannot distinguish a frequency from its multiples.}{Too detail here, i would suggest to put it in the 
+algorithm design. Here we are talking about more broader way of how to calcultae it. and the limitation.}
 
 \section{Gradient-Based Source Seeking}
 
-Gradient-based source seeking navigates an agent toward a scalar field maximum by estimating and following the local gradient of that field.
+\hlnotein{Gradient-based source seeking navigates an agent toward a scalar field maximum by estimating and 
+following the local gradient of that field.}{too compact, split to two sentences. this mean we will also spend a bit more
+talking about this later.}
 
-Plane-fitting gradient estimation approximates the local gradient by fitting a least-squares plane to nearby light intensity measurements, yielding a continuous gradient direction without requiring deliberate perturbations.
+\hlnotein{Plane-fitting gradient estimation approximates the local gradient by fitting a least-squares plane 
+to nearby light intensity measurements, yielding a continuous gradient direction without 
+requiring deliberate perturbations.}{several terms is too detail to put here to explain how you make it work,
+it should also be put later. at this point try to make it more easy for people to understand. something like
+"by collecting the intensity overtime, a simple gradient estimation can be apply to estimate the direction of the light source.}
 
-\section{Simulation Environment}
+\hlnote{\section{Simulation Environment}}{I would put this more up, its ok if its short, but why we are using it? 
+what is the advantage of using it? then talk about the good think about it.}
 
-The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.
+The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the 
+drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.

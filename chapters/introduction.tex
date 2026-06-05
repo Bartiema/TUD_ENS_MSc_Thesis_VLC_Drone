@@ -3,11 +3,18 @@
 
 \section{Motivation \& Problem Statement}
 
-Micro-UAVs have expanded into applications such as indoor inspection, environmental monitoring, and inventory management, yet their capabilities remain constrained by short flight endurance and restricted navigation in GPS-denied environments.
+\hlnotein{Micro-UAVs}{I think we still need to put the blimp result in this thesis right? if so its important to also bring that up here} have expanded into applications such as indoor inspection, environmental monitoring, 
+and inventory management, yet their capabilities remain constrained by short flight endurance and
+restricted navigation in \hlnote{GPS-denied environments}{its good to mentioned the application here}.
 
-Light-based navigation offers a cost-effective solution for GPS-denied environments, as only a simple modulator is needed to turn existing lights into navigation beacons while the drone carries all sensing hardware.
+Light-based navigation offers a \hlnote{cost-effective solution}{What is more than cost-effective? I wont add a small comparison here.}
+for GPS-denied environments, as only a simple modulator is needed to turn existing lights into navigation 
+beacons while the drone carries all sensing hardware.
 
-Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to bearing estimation, which does not support spatial navigation around obstacles.
+Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, 
+and approaches that work with a single light source are typically limited to \hlnotein{bearing estimation,
+which does not support spatial navigation around obstacles.}{its too detailed to bring up bearing estimation here,
+just say it is limited to simple target tracking, and it does not provide abilitiy to avoid obstacles.}
 
 Recent work has shown that a single light source can serve as a navigation beacon for micro-drones using a photodiode-based bearing estimation algorithm, but the resulting navigation remains reactive and does not exploit spatial information about the light environment.
 
@@ -15,17 +22,22 @@ This thesis addresses this limitation by introducing a gradient-ascent controlle
 
 \section{Contributions}
 
-This thesis contributes: (1) a fused gradient-ascent navigation controller with tunable parameters for single-light-source navigation; (2) a miniaturised photodiode PCB designed to fit the CrazyFlie~2.1 platform; and (3) a real-world experimental validation on a micro-drone.
+This thesis contributes: (1) a \hlnote{fused gradient-ascent navigation}{this can be the second one} controller with tunable parameters for single-light-source navigation; (2) \hlnotein{a miniaturised photodiode PCB designed to fit the CrazyFlie~2.1 platform;}{I would put this as the first contribution,
+and dont mention the specific platform here, it should be more general. We can say what PCB fit to small power micro drones.}
+and (3) a \hlnote{real-world experimental validation}{also add the simulation validation here} on a micro-drone.
 
 \section{Related Work}
+\todo[inline]{You are going to talk about the background later, is it necessary to have a related work section here?
+what i will do is make these scatter in the motivation}
 
 Visible-light communication systems have achieved centimetre-level indoor localisation accuracy, but typically require dense lighting infrastructure and are not designed for deployment on weight-constrained micro-drones.
 
 Alternative GPS-denied navigation approaches for drones---including UWB, WiFi fingerprinting, and visual SLAM---offer high accuracy but impose significant computational or infrastructure costs that are prohibitive for micro-drones.
 
-Photodiode-based angle-of-arrival estimation provides a lightweight mechanism for determining the direction of a single light source, with prior work showing that 8 photodiodes are sufficient for reliable bearing estimates.
+\hlnotein{Photodiode-based angle-of-arrival estimation}{same it is too much detail in the introduction, use a more general term and bring the detail later} provides a lightweight mechanism for determining the direction of a single light source, 
+with prior work showing that 8 photodiodes are sufficient for reliable bearing estimates.
 
-Gradient-based and potential-field navigation methods have been widely used in robotics to guide agents toward a goal using a spatial map, but have not been applied to light-intensity fields for drone navigation.
+\hlnote{Gradient-based and potential-field navigation methods}{try to make it more general, like using temporal information} have been widely used in robotics to guide agents toward a goal using a spatial map, but have not been applied to light-intensity fields for drone navigation.
 
 \section{Thesis Overview}
 

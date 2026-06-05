@@ -3,17 +3,26 @@
 
 \section{Design Requirements}
 
-The photodiode board was designed to meet two hard constraints: a total mass below 13 grams and a maximum diagonal footprint of 44\,mm, imposed by the CrazyFlie~2.1 platform's payload and form factor limits.
+The photodiode board was designed to meet two hard constraints: a total mass below 13 grams and a maximum diagonal 
+footprint of 44\,mm, imposed by the CrazyFlie~2.1 platform's payload and form factor limits.
 
-\section{Circuit Design}
+\hlnotein{\section{Circuit Design}}{one thing to think about here, previously is good to mentioned we 
+need to design a board below 13g. we can mentioned before people usually use opt101(what weight and 
+its too heavy and bulky.) here for each module, we need to say why we need it? for example, the 
+trasimpedance amplifier help us to increase the phodiode's voltage and help us to tune the response etc.}
 
-Eight photodiodes are arranged in a ring and each connected to a transimpedance amplifier that converts the photodiode's current output to a measurable voltage signal.
+Eight photodiodes are arranged in a ring and each connected to a transimpedance amplifier 
+that converts the photodiode's current output to a measurable voltage signal.
 
-The voltage outputs are digitised by an ADC module that communicates with the CrazyFlie's onboard processor over SPI, providing all eight channel readings at each sample.
+The voltage outputs are digitised by an ADC module that communicates with the CrazyFlie's
+onboard processor over SPI, providing all eight channel readings at each sample.
 
-The board includes optional first-order filter pads at each channel, allowing a low-pass or high-pass filter to be populated depending on the noise characteristics of the deployment environment.
+The board includes optional first-order filter pads at each channel, allowing a low-pass
+or high-pass filter to be populated depending on the noise characteristics of the deployment environment.
 
-\section{PCB Layout}
+\hlnote{\section{PCB Layout}}{try to talk about why the layout and number choice. I have some previous
+result, let's ask marco whether we can use it here. the teensy one pop out here. that's why we should mentioned the
+old prototype before and its limitation.}
 
 The eight photodiodes are uniformly distributed at 45\textdegree{} intervals around the full 360\textdegree{} circumference of the board to provide symmetric angular coverage.
 
