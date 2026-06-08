@@ -9,9 +9,15 @@ The controller was validated in simulation, demonstrating obstacle avoidance cap
 
 Real-world experiments confirmed that the SNR-based signal processing pipeline effectively isolates the target beacon from ambient light, and that the fused controller navigates correctly in both open-space and single-obstacle scenarios.
 
+The same controller was additionally deployed on a lighter-than-air blimp; the corresponding experiments, reported in~\cite{huang2026lta}, further validate the approach and strengthen the link between the simulated and physical results.
+
 \section{Limitations}
 
-The operating range of the system is constrained by the photodiode sensor circuit: at large distances the SNR between the modulated beacon and ambient light becomes insufficient for reliable detection, while at close range the photodiodes saturate, creating a narrow effective operating band.
+On the CrazyFlie platform, the operating range is constrained by the photodiode sensor circuit: at large distances the SNR between the modulated beacon and ambient light becomes insufficient for reliable detection, while at close range the photodiodes saturate, creating a narrow effective operating band.
+
+The lighter-than-air blimp is far less affected by this and exhibits significantly better SNR, as reported in~\cite{huang2026lta}.
+
+The cause of this difference is left as future work, with the CrazyFlie's closer motor placement and higher power draw being plausible but unverified sources of additional electromagnetic interference and propeller reflections.
 
 Navigation is currently limited to a fixed flight altitude, so the bearing estimate and the gradient map the drone produces are both two-dimensional.
 

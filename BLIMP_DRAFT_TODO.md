@@ -16,21 +16,23 @@ as little as possible.
 
 ## Edits required for the blimp draft (review comments #1, #30, #31)
 
-### #1 — Introduction, Motivation (`chapters/introduction.tex`)
-- [ ] Bring up the blimp platform/result in the opening motivation, where
-      micro-UAVs are introduced. Keep it to one sentence/paragraph to stay within
-      the single-sentence-draft style.
+### #1 — Introduction, Motivation (`chapters/introduction.tex`) — DONE
+- [x] Added one sentence after the micro-UAV/endurance opening: LTA blimps address
+      endurance and serve as a second validation platform. Cites `huang2026lta`.
+- [ ] Confirm the `huang2026lta` bib entry author list/order + publication status
+      (entry currently `Harry Huang and others`, "Under submission").
 
-### #30 — Conclusions, Summary (`chapters/conclusions.tex`)
-- [ ] Add the blimp real-world experiment to the summary; it links the real-world
-      validation back to the simulation (the blimp also ran in the simulator).
-      Currently the summary only mentions the CrazyFlie 2.1.
+### #30 — Conclusions, Summary (`chapters/conclusions.tex`) — DONE
+- [x] Added a sentence at the end of the Summary: the same controller was also
+      deployed on the LTA blimp, strengthening the sim<->real link. Cites
+      `huang2026lta`. (All three controllers, incl. the fused one, flew on the
+      real blimp; achieved multi-target, obstacle avoidance, better SNR.)
 
-### #31 — Conclusions, Limitations (`chapters/conclusions.tex`)
-- [ ] Revisit the operating-range limitation. Harry noted "on my blimp is fine" —
-      i.e. the narrow operating band caused by the photodiode circuit may not apply
-      (or applies differently) to the blimp, so this limitation likely needs
-      rewording or qualifying in the blimp draft.
+### #31 — Conclusions, Limitations (`chapters/conclusions.tex`) — DONE
+- [x] Scoped the narrow-operating-band limitation to the CrazyFlie platform; added
+      that the blimp has significantly better SNR; cause left as future work with
+      motor-proximity / power / EMI / reflection as plausible-but-unverified
+      hypotheses (not stated as facts). Three single-sentence paragraphs.
 
 ## Supporting content needed
 - [ ] Blimp experiment results / figures to cite or include (from the
