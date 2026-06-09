@@ -3,19 +3,29 @@
 
 \section{Why Existing Methods Fall Short}
 
-A bearing-only controller drives the drone straight toward the light, which works in open space but fails as soon as an obstacle blocks the line of sight, since the drone has no memory of the light field and cannot route around the obstruction.
+The bearing and single-photodiode gradient methods this work builds on each steer toward a single light, but neither can route around an obstacle that blocks the line of sight, and neither distinguishes more than one beacon.
 
-Following the light gradient with a single photodiode is slow and noisy, and on its own it does not give a reliable heading toward the source.
+In simulation, a bearing-only controller drives straight at the light and stalls against an obstacle, never recovering once the direct signal is lost (Figure~\ref{fig:bearing-fail}).
 
-Neither approach handles more than one beacon, because nothing in them distinguishes or sequences multiple light sources.
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.6\textwidth]{Simulation: a bearing-only controller driving into an obstacle and failing to reach the light source behind it}
+    \caption{In simulation, the bearing-only controller cannot navigate around an obstacle.}
+    \label{fig:bearing-fail}
+\end{figure}
 
-We demonstrate these shortcomings in simulation, and the remainder of this chapter develops a controller that overcomes them; the supporting results are presented in Chapter~\ref{chp:obstacle}.
+The remainder of this chapter develops a fused, map-based controller that overcomes these limits, with its positive results presented in Chapter~\ref{chp:obstacle}.
 
 \section{System Overview}
 
-The navigation controller fuses a bearing angle signal and a gradient ascent signal through a state machine that selects the appropriate navigation mode based on signal strength and map coverage.
+The navigation controller fuses a bearing angle signal and a gradient ascent signal through a state machine that selects the appropriate navigation mode based on signal strength and map coverage (Figure~\ref{fig:controller-overview}).
 
-% TODO: Figure --- block diagram showing state machine, map, bearing input, gradient input, and heading output
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.7\textwidth]{Block diagram of the fused controller: the photodiode array feeds a bearing estimate and the light map, the map yields a gradient, and a state machine fuses bearing and gradient into a target heading and forward speed for the flight controller}
+    \caption{Overview of the fused navigation controller.}
+    \label{fig:controller-overview}
+\end{figure}
 
 \section{Bearing Angle}
 
@@ -23,7 +33,13 @@ The controller's first input is a bearing angle, computed from the differential 
 
 The bearing is only trusted when its signal strength exceeds a minimum threshold, so that a weak or absent signal does not produce a spurious heading.
 
-To navigate between several beacons, each is modulated at a distinct frequency so the controller can track one at a time, and the switch between frequencies was developed with simple Teensy experiments and requires that the frequencies avoid harmonic relationships.
+\section{Multi-Beacon Traversal}
+
+Each beacon is modulated at a distinct frequency, and the controller traverses a sequence of beacons by retuning the FFT pipeline to the next beacon's frequency once the current one is reached.
+
+Because the pipeline can evaluate several frequencies from the same samples, the beacons can also be monitored in parallel, as demonstrated in Section~\ref{sec:freq-separation}.
+
+These frequencies must avoid harmonic relationships, since the FFT cannot distinguish a frequency from its integer multiples; the switch between frequencies was developed with simple static Teensy experiments.
 
 \section{Light Intensity Map}
 
@@ -33,9 +49,14 @@ As the drone flies, it accumulates a spatial map by storing the strongest measur
 
 The controller estimates the light gradient from all eight photodiodes rather than the single photodiode used in prior work, giving a faster and more stable direction of steepest increase.
 
-Five candidate methods for estimating the gradient from the map are considered, from plane fits to a curved surface fit, and their accuracy is compared in this chapter to select the one the controller uses.
+Five candidate methods for estimating the gradient from the map are considered, from plane fits to a curved surface fit, and their accuracy is compared in this chapter to select the one the controller uses (Figure~\ref{fig:gradient-comparison}).
 
-% TODO: gradient method comparison (dense probe map, sparse coverage) --- relocated from the old Simulation Experiments chapter
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.7\textwidth]{Directional error of the five gradient estimation methods, evaluated on the dense probe map and on the sparse flight-path-visited subset}
+    \caption{Accuracy of the five gradient estimation methods in simulation.}
+    \label{fig:gradient-comparison}
+\end{figure}
 
 \section{Controller State Machine}
 

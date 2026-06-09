@@ -1,0 +1,39 @@
+\chapter{Obstacle Experiments}
+\label{chp:obstacle}
+
+\section{Experimental Setup}
+
+Building on the real-world signal pipeline described in Chapter~\ref{chp:realworld}, the obstacle experiments place a physical obstacle between the drone's start position and a light beacon, first in the Webots simulation and then in a real room with the CrazyFlie~2.1 carrying the photodiode PCB (Figure~\ref{fig:obstacle-setup}).
+
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.6\textwidth]{Obstacle setup: physical obstacle between the drone start and the beacon, in Webots simulation and in the real room}
+    \caption{Obstacle experiment setup in simulation and the real room.}
+    \label{fig:obstacle-setup}
+\end{figure}
+
+\section{SNR Field Mapping}
+
+\textit{Question: does the SNR field in the real room form a navigable gradient toward the light source?}
+
+Dedicated data-gathering flights construct spatial heatmaps of the SNR field, confirming that the signal increases toward the beacon so that a navigable gradient exists in the real environment.
+
+\section{Obstacle Avoidance}
+
+\subsection{Simulation}
+
+\textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
+
+In simulation the fused controller navigates around an obstacle that defeats the bearing-only baseline, with the state machine entering the recovering phase to follow the gradient out of the occluded region.
+
+\subsection{Real-World Flight}
+
+\textit{Question: does the gradient-based map let the drone navigate around a physical obstacle to reach the light source?}
+
+A flight with a physical obstacle between the drone's start and the beacon shows that the fused controller routes around the obstruction on the CrazyFlie using its accumulated light map.
+
+\section{Generalisation to a Blimp Platform}
+
+\textit{Question: does the approach generalise beyond the platforms validated here?}
+
+Although our own validation was carried out in simulation and on the CrazyFlie~2.1, the bearing and gradient methods this work builds on have also been demonstrated on a lighter-than-air blimp, whose results indicate that obstacle avoidance and multi-beacon navigation extend to that platform as well~\cite{}.

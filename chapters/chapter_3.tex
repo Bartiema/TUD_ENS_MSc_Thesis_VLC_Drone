@@ -3,15 +3,24 @@
 
 \section{The Original Prototype}
 
-The bearing and gradient algorithms were first realised on an earlier prototype built around a Teensy microcontroller, which read the photodiodes correctly but was too large and heavy to fly on a micro-drone.
+The bearing and gradient algorithms were first realised on an earlier prototype built around a Teensy~4.1 microcontroller, which read the photodiodes correctly but was far too large, heavy, and power-hungry to fly on a micro-drone, and carried far more compute than the algorithms require.
 
-% TODO: Figure --- photo of the original Teensy-based prototype board
+The original board used larger, ready-made photodiode and operational-amplifier modules and provided space for sixteen photodiodes, more than the eight that Harry's prior research showed to be sufficient (Figure~\ref{fig:old-prototype}).
 
-This chapter presents a redesigned board that keeps the same sensing principle while meeting the size, weight, and power limits of the CrazyFlie platform, and the new design is compared against the original throughout.
+\begin{figure}[t]
+    \centering
+    \missingfigure[figwidth=0.6\textwidth]{Photograph of the original Teensy 4.1-based prototype board}
+    \caption{The original Teensy 4.1-based prototype board.}
+    \label{fig:old-prototype}
+\end{figure}
+
+This chapter presents a redesigned board that keeps the same sensing principle while meeting the size, weight, and power limits of the CrazyFlie platform, and compares the new design against this original throughout.
 
 \section{Design Requirements}
 
-The photodiode board was designed to meet two hard constraints: a total mass below 13 grams and a maximum diagonal footprint of 44\,mm, imposed by the CrazyFlie~2.1 platform's payload and form factor limits.
+The new board was designed to correct the shortcomings of the original prototype while meeting the CrazyFlie~2.1's hard limits: a total mass below 13 grams and a maximum diagonal footprint of 44\,mm.
+
+It therefore uses eight photodiodes rather than sixteen, compact surface-mount photodiode and amplifier components in place of the larger ready-made modules, and offloads all computation to the CrazyFlie so that no power-hungry on-board microcontroller is required.
 
 \section{Circuit Design}
 

@@ -1,20 +1,22 @@
-\chapter{Multi-Beacon Experiments}
-\label{chp:multibeacon}
+\chapter{Real-World Implementation}
+\label{chp:realworld}
 
-\section{Experimental Setup}
+\section{From Intensity to SNR}
 
-The multi-beacon capability was first tested in a simple static setup with two modulated light sources using the Teensy-based sensing platform, before being demonstrated in flight on the CrazyFlie~2.1.
+In the real world, ambient light and background illumination corrupt the raw intensity used in simulation, so the system instead measures the SNR at each beacon's modulation frequency to isolate the target light.
 
-% TODO: Figure --- static two-light Teensy setup
+A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise and reflection artefacts (which occur at frequencies above the Nyquist limit of the ADC) from aliasing into the FFT and corrupting the SNR estimate.
 
-\section{Experiment: Frequency Separation and Switching}
+Beyond the base algorithm's existing DC removal and Hamming window, three additional filters were introduced: block-based estimation, noise floor estimation, and per-channel magnitude IIR filters, to improve signal stability during flight.
 
-\textit{Question: can the sensing pipeline separate two beacons by their modulation frequency and switch between them?}
+\section{Filter Validation}
 
-With two lights present, the static Teensy setup records the SNR of both modulation frequencies at the same time and switches the tracked frequency from one light to the other, confirming that beacons can be distinguished and selected by frequency.
+\textit{Question: are the hardware low-pass filter and the additional software filters necessary, and what effect does each have on signal stability during flight?}
 
-\section{Experiment: Sequential Two-Target Traverse}
+The necessity of the 500\,Hz hardware low-pass filter is shown by comparing SNR measurements taken with and without it, and comparing measurements with and without the software filters then shows the reduction in noise and signal variance each stage contributes.
 
-\textit{Question: does the fused controller navigate to two beacons in sequence in an unobstructed real-world flight?}
+\section{Effect of Ambient Lighting}
 
-The drone navigates to each beacon in turn on the CrazyFlie~2.1, validating that the full state machine sequences through multiple targets correctly on the real platform in open-space conditions.
+\textit{Question: how does ambient room lighting affect the SNR field and navigability?}
+
+Comparative flights with the room lights on and off reveal how much background illumination degrades the SNR signal and how well the modulation-based filtering resists it.

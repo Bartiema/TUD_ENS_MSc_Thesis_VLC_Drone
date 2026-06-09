@@ -1,61 +1,26 @@
-\chapter{Obstacle Experiments}
-\label{chp:obstacle}
-
-\section{Real-World Implementation}
-
-In the real world, ambient light and background illumination corrupt the raw intensity used in simulation, so the system instead measures the SNR at each beacon's modulation frequency to isolate the target light.
-
-A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise and reflection artefacts---which occur at frequencies above the Nyquist limit of the ADC---from aliasing into the FFT and corrupting the SNR estimate.
-
-Beyond the base algorithm's existing DC removal and Hamming window, three additional filters were introduced: block-based estimation, noise floor estimation, and per-channel magnitude IIR filters, to improve signal stability during flight.
+\chapter{Multi-Beacon Experiments}
+\label{chp:multibeacon}
 
 \section{Experimental Setup}
 
-The obstacle experiments place a physical obstacle between the drone's start position and a light beacon, first in the Webots simulation and then in a real room with the CrazyFlie~2.1 carrying the photodiode PCB (Figure~\ref{fig:obstacle-setup}).
+The multi-beacon capability was first tested in a simple static setup with two modulated light sources using the Teensy-based sensing platform, before being demonstrated in flight on the CrazyFlie~2.1 (Figure~\ref{fig:teensy-setup}).
 
 \begin{figure}[t]
     \centering
-    \missingfigure[figwidth=0.6\textwidth]{Obstacle setup --- physical obstacle between the drone start and the beacon, in Webots simulation and in the real room}
-    \caption{Obstacle experiment setup in simulation and the real room.}
-    \label{fig:obstacle-setup}
+    \missingfigure[figwidth=0.6\textwidth]{Static two-light Teensy setup used to test frequency separation and switching}
+    \caption{Static two-light setup on the Teensy sensing platform.}
+    \label{fig:teensy-setup}
 \end{figure}
 
-\section{Signal Pipeline Validation}
+\section{Experiment: Frequency Separation and Switching}
+\label{sec:freq-separation}
 
-\subsection{Filter Validation}
+\textit{Question: can the sensing pipeline separate two beacons by their modulation frequency and switch between them?}
 
-\textit{Question: are the hardware low-pass filter and the additional software filters necessary, and what effect does each have on signal stability during flight?}
+With two lights present, the static Teensy setup records the SNR of both modulation frequencies at the same time and switches the tracked frequency from one light to the other, confirming that beacons can be distinguished and selected by frequency.
 
-The necessity of the 500\,Hz hardware low-pass filter is shown by comparing SNR measurements taken with and without it, and comparing measurements with and without the software filters then shows the reduction in noise and signal variance each stage contributes.
+\section{Experiment: Sequential Two-Target Traverse}
 
-\subsection{SNR Field Mapping}
+\textit{Question: does the fused controller navigate to two beacons in sequence in an unobstructed real-world flight?}
 
-\textit{Question: does the SNR field in the real room form a navigable gradient toward the light source?}
-
-Dedicated data-gathering flights construct spatial heatmaps of the SNR field, confirming that the signal increases toward the beacon so that a navigable gradient exists in the real environment.
-
-\subsection{Effect of Ambient Lighting}
-
-\textit{Question: how does ambient room lighting affect the SNR field and navigability?}
-
-Comparative flights with the room lights on and off reveal how much background illumination degrades the SNR signal and how well the modulation-based filtering resists it.
-
-\section{Obstacle Avoidance}
-
-\subsection{Simulation}
-
-\textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
-
-In simulation the fused controller navigates around an obstacle that defeats the bearing-only baseline, with the state machine entering the recovering phase to follow the gradient out of the occluded region.
-
-\subsection{Real-World Flight}
-
-\textit{Question: does the gradient-based map let the drone navigate around a physical obstacle to reach the light source?}
-
-A flight with a physical obstacle between the drone's start and the beacon shows that the fused controller routes around the obstruction on the CrazyFlie using its accumulated light map.
-
-\section{Generalisation to a Blimp Platform}
-
-\textit{Question: does the approach generalise beyond the platforms validated here?}
-
-Although our own validation was carried out in simulation and on the CrazyFlie~2.1, the bearing and gradient methods this work builds on have also been demonstrated on a lighter-than-air blimp, whose results indicate that obstacle avoidance and multi-beacon navigation extend to that platform as well~\cite{}.
+The drone navigates to each beacon in turn on the CrazyFlie~2.1, validating that the full state machine sequences through multiple targets correctly on the real platform in open-space conditions.
