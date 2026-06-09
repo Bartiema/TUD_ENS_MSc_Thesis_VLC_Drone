@@ -1,5 +1,15 @@
-\chapter{Algorithm Design}
+\chapter{Problem \& Algorithm Design}
 \label{chp:algorithm}
+
+\section{Why Existing Methods Fall Short}
+
+A bearing-only controller drives the drone straight toward the light, which works in open space but fails as soon as an obstacle blocks the line of sight, since the drone has no memory of the light field and cannot route around the obstruction.
+
+Following the light gradient with a single photodiode is slow and noisy, and on its own it does not give a reliable heading toward the source.
+
+Neither approach handles more than one beacon, because nothing in them distinguishes or sequences multiple light sources.
+
+We demonstrate these shortcomings in simulation, and the remainder of this chapter develops a controller that overcomes them; the supporting results are presented in Chapter~\ref{chp:obstacle}.
 
 \section{System Overview}
 
@@ -9,42 +19,30 @@ The navigation controller fuses a bearing angle signal and a gradient ascent sig
 
 \section{Bearing Angle}
 
-The controller's first input is a bearing angle signal, computed from the differential readings across the photodiode ring introduced in Chapter~\ref{chp:background}.
+The controller's first input is a bearing angle, computed from the differential magnitudes across the photodiode ring by the prior bearing algorithm of Harry Huang~\cite{}.
 
-The strength of this signal---the magnitude of the measured signal at each sensor---indicates how reliably the light source is detected, with a stronger signal yielding a more trustworthy bearing estimate.
+The bearing is only trusted when its signal strength exceeds a minimum threshold, so that a weak or absent signal does not produce a spurious heading.
 
-When multiple beacons are deployed, each is modulated at a distinct frequency, and these frequencies must avoid harmonic relationships because the FFT used to separate them cannot distinguish a frequency from its multiples.
+To navigate between several beacons, each is modulated at a distinct frequency so the controller can track one at a time, and the switch between frequencies was developed with simple Teensy experiments and requires that the frequencies avoid harmonic relationships.
 
 \section{Light Intensity Map}
 
-As the drone flies, it accumulates a spatial map by storing the maximum measured light signal at each visited location, which increases monotonically as the drone approaches the light source.
-
-\section{Controller State Machine}
-
-When both map coverage and bearing signal strength fall below their respective thresholds, the drone executes a predefined search pattern to gather initial measurements and populate the map.
-
-Once the bearing signal exceeds its strength threshold but the map remains insufficiently populated, the controller drives the drone using the bearing angle alone.
-
-When both the bearing signal and map coverage are sufficient, the controller outputs a heading angle computed as a weighted sum of the bearing direction and the gradient direction from the map.
-
-If the bearing signal is subsequently lost after sufficient map coverage has been accumulated, the controller falls back to pure gradient ascent on the stored map to continue navigating toward the light.
+As the drone flies, it accumulates a spatial map by storing the strongest measured light signal at each visited location, which increases as the drone approaches the light source.
 
 \section{Gradient Estimation}
 
-The local gradient of the light intensity map is estimated from the measurements in the neighbourhood of the drone's current position, and five candidate estimation methods are considered for this purpose.
+The controller estimates the light gradient from all eight photodiodes rather than the single photodiode used in prior work, giving a faster and more stable direction of steepest increase.
 
-Ordinary least-squares plane fitting estimates the gradient from the two slope coefficients of a plane fitted to the neighbourhood measurements~\cite{}.
+Five candidate methods for estimating the gradient from the map are considered, from plane fits to a curved surface fit, and their accuracy is compared in this chapter to select the one the controller uses.
 
-Weighted least squares extends this fit by weighting each sample by the inverse square of its distance to the drone, so that nearer measurements contribute more strongly to the estimate~\cite{}.
+% TODO: gradient method comparison (dense probe map, sparse coverage) --- relocated from the old Simulation Experiments chapter
 
-Robust RANSAC repeatedly fits a plane to random three-point subsets and retains the fit with the most inliers, reducing the influence of outlier measurements~\cite{}.
+\section{Controller State Machine}
 
-A local polynomial fit fits a second-order surface to the neighbourhood and evaluates the gradient from its first-order terms at the drone's position, capturing the local curvature of the field~\cite{}.
+The state machine sequences the drone through searching, aligning, approaching, dwelling, and recovering phases for each beacon in a multi-target mission.
 
-Finite differences approximate the gradient from the difference in mean intensity between neighbouring samples in opposing directions along each axis~\cite{}.
-
-The relative accuracy of these methods is evaluated experimentally in Chapter~\ref{chp:simulation}.
+The recovering phase lets the drone keep moving on the gradient alone when the bearing is lost but the map is still reliable, allowing it to continue past an obstacle that blocks the direct signal.
 
 \section{Control Output}
 
-The controller outputs a target heading angle; forward motion is either set to a fixed speed or suppressed entirely depending on the angular error between the desired and current heading.
+The controller merges the bearing and gradient directions into a single target heading and sets a forward speed, which are passed to the drone's flight controller.

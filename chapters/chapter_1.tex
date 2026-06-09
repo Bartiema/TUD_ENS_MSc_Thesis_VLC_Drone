@@ -1,5 +1,15 @@
-\chapter{Background \& Theory}
+\chapter{Background \& Related Work}
 \label{chp:background}
+
+\section{Related Work}
+
+GPS-denied navigation for drones has been approached with UWB, WiFi fingerprinting, and visual SLAM, which achieve high accuracy but impose computational or infrastructure costs that are prohibitive for weight-constrained micro-drones~\cite{}.
+
+Visible-light positioning systems reach centimetre-level accuracy by combining many light anchors with known positions, but this density of lighting infrastructure is impractical for the environments targeted here~\cite{}.
+
+Approaches that rely on a single light source instead estimate only a bearing toward the source, or follow the light gradient with a single photodiode, which limits them to reaching one beacon in open space without obstacle avoidance~\cite{}.
+
+This single-anchor limitation is the gap this thesis targets: it builds on the bearing and single-photodiode gradient methods of prior work by Harry Huang~\cite{}, and contributes their fusion, the use of all eight photodiodes, and a spatial map that together enable multi-beacon and obstacle-aware navigation.
 
 \section{Visible Light Communication \& Sensing}
 
@@ -7,19 +17,11 @@ Visible light communication uses modulated light sources to transmit data, enabl
 
 The intensity received from a single light source falls off with both distance and angle according to the Lambertian model, making a single intensity reading ambiguous and forcing conventional light-positioning systems to rely on multiple overlapping light sources~\cite{}.
 
-Prior light-based approaches frame the problem as positioning---computing an absolute location from multiple light references---whereas this thesis frames it as navigation, moving toward a single light source using directional and gradient cues without computing an absolute position.
-
-\section{Simulation Environment}
-
-The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.
-
-Simulation provides a reproducible, hardware-independent, and reasonably accurate environment in which the navigation algorithms can be developed and tested before deployment on hardware.
+Photodiodes convert incident light into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
 
 \section{Bearing Angle Estimation}
 
-Photodiodes convert incident light into a measurable electrical signal, and their directional sensitivity makes them suitable for estimating the angle of incidence of a light source.
-
-Prior work introduced a bearing angle estimation algorithm that uses a ring of photodiodes to compute the relative angle toward a light source from the differential intensity readings across the array.
+Prior work introduced a bearing angle estimation algorithm that uses a ring of photodiodes to compute the relative angle toward a light source from the differential intensity readings across the array~\cite{}.
 
 Array-based direction estimation is well established for radio signals such as Bluetooth, WiFi, and GPS, but remains comparatively underexplored for visible light~\cite{}.
 
@@ -29,6 +31,12 @@ The bearing angle provides a single scalar direction toward the light source but
 
 Gradient-based source seeking guides an agent toward the maximum of a scalar field, such as the intensity field around a light source.
 
-The agent repeatedly estimates the direction of steepest increase and moves along it to climb toward the source.
+Prior work followed this gradient using a single photodiode, inferring the direction of steepest increase from how the intensity changes as the drone moves~\cite{}.
 
-Because the field is not known in advance, the gradient is estimated from light measurements collected along the agent's path.
+Because a single sensor must infer the gradient from motion alone, this approach is slow and sensitive to drift, which motivates estimating the gradient from several sensors at once.
+
+\section{Simulation Environment}
+
+The simulation environment used in this thesis was developed in prior work and provides a physics-accurate Webots model of the drone platform with realistic light sensor simulation; for a full description the reader is referred to~\cite{}.
+
+Simulation provides a reproducible, hardware-independent, and reasonably accurate environment in which the navigation algorithms can be developed and tested before deployment on hardware.

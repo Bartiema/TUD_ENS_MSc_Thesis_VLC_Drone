@@ -1,6 +1,14 @@
 \chapter{PCB Hardware Design}
 \label{chp:hardware}
 
+\section{The Original Prototype}
+
+The bearing and gradient algorithms were first realised on an earlier prototype built around a Teensy microcontroller, which read the photodiodes correctly but was too large and heavy to fly on a micro-drone.
+
+% TODO: Figure --- photo of the original Teensy-based prototype board
+
+This chapter presents a redesigned board that keeps the same sensing principle while meeting the size, weight, and power limits of the CrazyFlie platform, and the new design is compared against the original throughout.
+
 \section{Design Requirements}
 
 The photodiode board was designed to meet two hard constraints: a total mass below 13 grams and a maximum diagonal footprint of 44\,mm, imposed by the CrazyFlie~2.1 platform's payload and form factor limits.

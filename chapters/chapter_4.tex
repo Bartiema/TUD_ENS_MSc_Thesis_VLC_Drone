@@ -1,43 +1,20 @@
-\chapter{Simulation Experiments}
-\label{chp:simulation}
+\chapter{Multi-Beacon Experiments}
+\label{chp:multibeacon}
 
 \section{Experimental Setup}
 
-The simulation experiments are designed to probe the central challenges of single-light navigation: navigating around obstacles, and recovering a reliable gradient from the sparse measurements gathered along a flight path, which first requires that the light field forms a navigable gradient at all.
+The multi-beacon capability was first tested in a simple static setup with two modulated light sources using the Teensy-based sensing platform, before being demonstrated in flight on the CrazyFlie~2.1.
 
-All experiments share a single setup in the Webots environment described in Chapter~\ref{chp:background}: a single overhead light source with a known position serves as the navigation target, providing a controlled setting in which each challenge can be isolated and tested (Figure~\ref{fig:sim-setup}).
+% TODO: Figure --- static two-light Teensy setup
 
-\begin{figure}[t]
-    \centering
-    \missingfigure[figwidth=0.6\textwidth]{Webots simulation setup --- single overhead light source, drone start pose, and obstacle placement}
-    \caption{Shared simulation experiment setup used across all simulation experiments.}
-    \label{fig:sim-setup}
-\end{figure}
+\section{Experiment: Frequency Separation and Switching}
 
-\section{Experiment 1: Baseline Bearing-Only Navigation}
+\textit{Question: can the sensing pipeline separate two beacons by their modulation frequency and switch between them?}
 
-\textit{Question: how does the bearing-only controller behave in open space and in the presence of obstacles?}
+With two lights present, the static Teensy setup records the SNR of both modulation frequencies at the same time and switches the tracked frequency from one light to the other, confirming that beacons can be distinguished and selected by frequency.
 
-The bearing-only controller navigates successfully toward the light source in unobstructed conditions but fails to navigate around obstacles, as it has no spatial memory of the light environment and cannot recover a path once line-of-sight is disrupted.
+\section{Experiment: Sequential Two-Target Traverse}
 
-\section{Experiment 2: Dense Probe Map Collection}
+\textit{Question: does the fused controller navigate to two beacons in sequence in an unobstructed real-world flight?}
 
-\textit{Question: does the light intensity field form a navigable gradient, and what does it look like under ideal sampling conditions?}
-
-A systematic grid scan produces a dense probe map of the light intensity field, confirming a consistent gradient toward the source and providing an ideal-coverage reference dataset for evaluating gradient estimation methods.
-
-\section{Experiment 3: Gradient Estimation Method Comparison}
-
-\textit{Question: which of the five gradient estimation methods most accurately recovers the gradient direction from the dense probe map?}
-
-The five candidate gradient estimation methods introduced in Chapter~\ref{chp:algorithm} are evaluated against the dense probe map, with weighted least squares yielding the lowest directional error.
-
-\textit{Question: how does gradient estimation quality degrade when the drone can only use the map points visited along its flight path?}
-
-Gradient quality is re-evaluated using only the flight-path-visited subset of map points, quantifying the accuracy penalty of the realistic sparse coverage scenario compared to the ideal full-map case.
-
-\section{Experiment 4: Fused Controller Validation}
-
-\textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
-
-The fused controller is validated in simulation by demonstrating successful navigation around an obstacle, with the state machine correctly transitioning through modes as the drone's map coverage and bearing signal quality evolve.
+The drone navigates to each beacon in turn on the CrazyFlie~2.1, validating that the full state machine sequences through multiple targets correctly on the real platform in open-space conditions.

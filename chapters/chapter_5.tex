@@ -1,5 +1,5 @@
-\chapter{Real-World Implementation \& Experiments}
-\label{chp:realworld}
+\chapter{Obstacle Experiments}
+\label{chp:obstacle}
 
 \section{Real-World Implementation}
 
@@ -11,15 +11,13 @@ Beyond the base algorithm's existing DC removal and Hamming window, three additi
 
 \section{Experimental Setup}
 
-Two experimental cases are used: an open-space arrangement with two modulated light beacons positioned in a room, and a second arrangement that adds a physical obstacle between the drone's start position and the first beacon (Figure~\ref{fig:realworld-setup}).
-
-In both cases the CrazyFlie~2.1 carries the custom photodiode PCB as the sensing payload.
+The obstacle experiments place a physical obstacle between the drone's start position and a light beacon, first in the Webots simulation and then in a real room with the CrazyFlie~2.1 carrying the photodiode PCB (Figure~\ref{fig:obstacle-setup}).
 
 \begin{figure}[t]
     \centering
-    \missingfigure[figwidth=0.6\textwidth]{Real-world setup --- two modulated beacons in a room (open-space case) and the added physical obstacle (obstacle case), with the CrazyFlie~2.1 carrying the photodiode PCB}
-    \caption{Real-world experiment setup for the two cases: open-space two-beacon and two-beacon with obstacle.}
-    \label{fig:realworld-setup}
+    \missingfigure[figwidth=0.6\textwidth]{Obstacle setup --- physical obstacle between the drone start and the beacon, in Webots simulation and in the real room}
+    \caption{Obstacle experiment setup in simulation and the real room.}
+    \label{fig:obstacle-setup}
 \end{figure}
 
 \section{Signal Pipeline Validation}
@@ -28,30 +26,36 @@ In both cases the CrazyFlie~2.1 carries the custom photodiode PCB as the sensing
 
 \textit{Question: are the hardware low-pass filter and the additional software filters necessary, and what effect does each have on signal stability during flight?}
 
-The necessity of the 500\,Hz hardware low-pass filter is shown by comparing SNR measurements taken with and without it, confirming that without it motor noise and reflection artefacts above the ADC's Nyquist limit alias into the FFT and corrupt the SNR estimate.
-
-Comparing SNR measurements with and without the block estimation, noise floor estimation, and IIR filters then demonstrates the reduction in noise and signal variance contributed by each software filtering stage.
+The necessity of the 500\,Hz hardware low-pass filter is shown by comparing SNR measurements taken with and without it, and comparing measurements with and without the software filters then shows the reduction in noise and signal variance each stage contributes.
 
 \subsection{SNR Field Mapping}
 
-\textit{Question: does the SNR field in the real room form a navigable gradient toward each light source?}
+\textit{Question: does the SNR field in the real room form a navigable gradient toward the light source?}
 
-Because the controller navigates by climbing the light gradient, dedicated data-gathering flights are first used to map the SNR field, and the resulting spatial heatmaps confirm that the signal increases monotonically toward each beacon so that a navigable gradient exists in the real environment.
+Dedicated data-gathering flights construct spatial heatmaps of the SNR field, confirming that the signal increases toward the beacon so that a navigable gradient exists in the real environment.
 
 \subsection{Effect of Ambient Lighting}
 
 \textit{Question: how does ambient room lighting affect the SNR field and navigability?}
 
-Comparative flights with ambient lights on and off reveal the degree to which background illumination degrades the SNR signal and the robustness of the modulation-based filtering approach.
-
-\section{Two-Target Traverse}
-
-\textit{Question: does the fused controller successfully navigate to two light sources in sequence in an unobstructed real-world environment?}
-
-The drone successfully navigates to each beacon in turn, validating that the full state machine operates correctly on the real platform in open-space conditions.
+Comparative flights with the room lights on and off reveal how much background illumination degrades the SNR signal and how well the modulation-based filtering resists it.
 
 \section{Obstacle Avoidance}
 
-\textit{Question: does the gradient-based map allow the drone to navigate around a physical obstacle to reach the light source?}
+\subsection{Simulation}
 
-A single flight with a physical obstacle placed between the drone's starting position and the first beacon demonstrates that the fused controller navigates around the obstruction using the accumulated light intensity map.
+\textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
+
+In simulation the fused controller navigates around an obstacle that defeats the bearing-only baseline, with the state machine entering the recovering phase to follow the gradient out of the occluded region.
+
+\subsection{Real-World Flight}
+
+\textit{Question: does the gradient-based map let the drone navigate around a physical obstacle to reach the light source?}
+
+A flight with a physical obstacle between the drone's start and the beacon shows that the fused controller routes around the obstruction on the CrazyFlie using its accumulated light map.
+
+\section{Generalisation to a Blimp Platform}
+
+\textit{Question: does the approach generalise beyond the platforms validated here?}
+
+Although our own validation was carried out in simulation and on the CrazyFlie~2.1, the bearing and gradient methods this work builds on have also been demonstrated on a lighter-than-air blimp, whose results indicate that obstacle avoidance and multi-beacon navigation extend to that platform as well~\cite{}.

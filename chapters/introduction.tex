@@ -9,20 +9,16 @@ Light-based navigation requires only a simple modulator to turn existing lights 
 
 Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to simple target tracking and cannot navigate around obstacles.
 
-Recent work has shown that a single light source can serve as a navigation beacon for micro-drones using a photodiode-based bearing estimation algorithm, but the resulting navigation remains reactive and does not exploit spatial information about the light environment.
+Recent work by Harry Huang demonstrated light-based navigation for micro-drones using a photodiode bearing algorithm and a single-photodiode gradient method, but this platform can only reach a single beacon in open space and cannot navigate around obstacles~\cite{}.
 
-This thesis addresses this limitation by introducing a gradient-ascent controller that fuses bearing information with a spatial light intensity map, enabling more robust and tunable autonomous navigation toward a light source.
+The central challenge this thesis addresses is enabling a weight-, size-, and power-constrained micro-drone to navigate to multiple light beacons and around obstacles using only on-board light sensing.
+
+This thesis addresses this challenge with a fused controller that combines bearing and gradient information, estimates the gradient from all eight photodiodes rather than one, and builds a spatial light map that supports obstacle-aware, multi-beacon navigation.
 
 \section{Contributions}
 
-This thesis contributes: (1) a miniaturised photodiode PCB designed for weight-, size-, and power-constrained micro-drones; (2) a fused gradient-ascent navigation controller with tunable parameters for single-light-source navigation; and (3) experimental validation in both simulation and the real world on a micro-drone.
-
-\section{Related Work}
-
-This thesis draws on three threads of prior work---VLC-based indoor localisation, photodiode-based bearing estimation, and gradient-based source seeking---which are examined in detail in Chapter~\ref{chp:background}, and it is distinguished by combining single-light-source bearing sensing with a self-built gradient map to enable obstacle-aware navigation.
-
-Alternative GPS-denied navigation approaches for drones---including UWB, WiFi fingerprinting, and visual SLAM---offer high accuracy but impose computational or infrastructure costs that are prohibitive for micro-drones.
+This thesis contributes: (1) a miniaturised photodiode PCB that improves on an earlier Teensy-based prototype for weight-, size-, and power-constrained micro-drones; (2) a fused navigation controller that combines bearing and gradient seeking and estimates the gradient from all eight photodiodes, where prior work used a single photodiode; (3) multi-beacon and obstacle-avoiding navigation built on a self-constructed light map; and (4) validation in simulation and on a CrazyFlie~2.1, with prior blimp results showing the approach generalises across platforms.
 
 \section{Thesis Overview}
 
-The remainder of this thesis is organised as follows: Chapter~\ref{chp:background} presents the background theory; Chapter~\ref{chp:algorithm} describes the algorithm design; Chapter~\ref{chp:hardware} covers the PCB hardware design; Chapter~\ref{chp:simulation} presents the simulation experiments; Chapter~\ref{chp:realworld} presents the real-world implementation and experiments; and Chapter~\ref{chp:conclusions} states the conclusions.
+The remainder of this thesis is organised as follows: Chapter~\ref{chp:background} reviews related work and the background theory; Chapter~\ref{chp:algorithm} analyses why existing methods fall short and presents the algorithm design; Chapter~\ref{chp:hardware} covers the PCB hardware design; Chapter~\ref{chp:multibeacon} presents the multi-beacon experiments; Chapter~\ref{chp:obstacle} presents the obstacle-avoidance experiments; and Chapter~\ref{chp:conclusions} states the conclusions.
