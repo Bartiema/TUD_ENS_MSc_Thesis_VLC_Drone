@@ -1,35 +1,37 @@
 # Thesis TODO
 
-## Citations needed
+## To confirm
+- [ ] **Gradient-ascent failure simulation** (`fig:gradient-fail`, `chapters/chapter_2.tex`,
+      "Why Existing Methods Fall Short"): confirm the described failure mode actually
+      matches the simulation. The text currently says single-photodiode gradient ascent
+      follows a *slow, wandering path and stalls where the field is shallow or noisy*.
+      Correct the text if the real failure mode differs.
 
-### Gradient estimation methods — `chapters/chapter_2.tex`, Gradient Estimation section
-The five candidate gradient estimation methods each need a reference. Currently
-left as blank `\cite{}` placeholders.
+## Figures to produce (currently `\missingfigure` placeholders)
+- [ ] `fig:bearing-fail` — `chapters/chapter_2.tex`: simulation of the bearing-only
+      controller failing at an obstacle.
+- [ ] `fig:gradient-fail` — `chapters/chapter_2.tex`: simulation of single-photodiode
+      gradient ascent on a slow/wandering path (see "To confirm" above).
+- [ ] `fig:fft-beacons` — `chapters/chapter_2.tex` (Multi-Beacon Traversal): FFT of a
+      photodiode signal with two beacons, a separate peak per modulation frequency.
+- [ ] `fig:gradient-comparison` — `chapters/chapter_2.tex` (Gradient Estimation):
+      directional error of the five gradient methods on the dense vs sparse map.
+- [ ] `fig:old-prototype` — `chapters/chapter_3.tex` (PCB): photo of the original
+      Teensy 4.1 prototype board.
+- [ ] `fig:teensy-setup` — `chapters/chapter_5.tex` (Multi-Beacon): static two-light
+      Teensy setup.
+- [ ] `fig:obstacle-setup` — `chapters/chapter_6.tex` (Obstacle): obstacle setup in
+      simulation and the real room.
 
-- [ ] Least squares plane fit — `\cite{}`
-- [ ] Weighted least squares — `\cite{}`
-- [ ] Robust RANSAC — `\cite{}` (e.g. Fischler & Bolles 1981 — validate before use)
-- [ ] Local polynomial fit — `\cite{}`
-- [ ] Finite differences — `\cite{}`
+(`fig:controller-overview` and `fig:state-machine` are drawn as TikZ, not placeholders.)
 
-> Source: Harry review comment #25 (move the five methods into Algorithm Design).
-> All `\cite{}` are intentionally blank for now — fill from
-> `bib/MyMScTUDESThesisBibFile.bib`.
+## Citations / blank cites to fill
+Still blank in the Background chapter (`chapters/chapter_1.tex`):
+- [ ] Simulation environment reference (Simulation Environment section).
+- [ ] Multiple-overlapping-lights / light-positioning claim (VLC & Sensing).
+- [ ] Array-based direction estimation for radio, Bluetooth/WiFi/GPS (Bearing Angle).
+- [ ] Related Work citations: general GPS-denied methods (UWB/WiFi/SLAM), light
+      positioning, and the prior work by Harry Huang.
 
-## Figures to produce
-- [ ] Shared simulation setup figure (`fig:sim-setup`) — `chapters/chapter_4.tex`,
-      Experimental Setup. Render the Webots scene: single overhead light source,
-      drone start pose, obstacle placement. Currently a `\missingfigure` placeholder.
-- [ ] Real-world setup figure (`fig:realworld-setup`) — `chapters/chapter_5.tex`,
-      Experimental Setup. Show the two cases: open-space two-beacon, and two-beacon
-      + obstacle, CrazyFlie 2.1 with photodiode PCB. Currently a `\missingfigure`.
-
-## Citations needed (cont.)
-
-### Other blank cites
-- [ ] Simulation environment reference — `chapters/chapter_1.tex`,
-      Simulation Environment section (`~\cite{}` already present in draft).
-- [ ] Multiple-overlapping-lights / light-positioning claim — `chapters/chapter_1.tex`,
-      VLC & Sensing section (Lambertian sentence, `~\cite{}`).
-- [ ] Array-based direction estimation for radio (Bluetooth/WiFi/GPS) analogue —
-      `chapters/chapter_1.tex`, Bearing Angle Estimation section (`~\cite{}`).
+(Chapter 3 citations — Harry's arXiv paper `huang2026lta` and the five gradient
+methods — are filled.)
