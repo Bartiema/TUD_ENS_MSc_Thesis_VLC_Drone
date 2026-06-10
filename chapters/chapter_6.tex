@@ -3,9 +3,9 @@
 
 \section{Experimental Setup}
 
-Building on the real-world signal pipeline described in Chapter~\ref{chp:realworld}, the obstacle experiments place a physical obstacle between the drone's start position and a light beacon, first in the Webots simulation and then in a real room with the CrazyFlie~2.1 carrying the photodiode PCB (Figure~\ref{fig:obstacle-setup}).
+Building on the real-world signal pipeline described in Chapter~\ref{chp:realworld}, the obstacle experiments place a physical obstacle between the drone's start position and a light beacon, first in the Webots simulation and then in a real room with the CrazyFlie~2.1 carrying the photodiode PCB, as shown in Figure~\ref{fig:obstacle-setup}.
 
-\begin{figure}[t]
+\begin{figure}[h]
     \centering
     \missingfigure[figwidth=0.6\textwidth]{Obstacle setup: physical obstacle between the drone start and the beacon, in Webots simulation and in the real room}
     \caption{Obstacle experiment setup in simulation and the real room.}
@@ -24,7 +24,14 @@ Dedicated data-gathering flights construct spatial heatmaps of the SNR field, co
 
 \textit{Question: can the fused controller navigate around obstacles that the bearing-only controller cannot handle?}
 
-In simulation the fused controller navigates around an obstacle that defeats the bearing-only baseline, with the state machine entering the recovering phase to follow the gradient out of the occluded region.
+In simulation the fused controller navigates around an obstacle that defeats the bearing-only baseline, with the state machine entering the recovering phase to follow the gradient out of the occluded region, as Figure~\ref{fig:fused-sim} shows.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/fused_sim/blimp_trajectory_2d.png}
+    \caption{In simulation, the fused controller routes cleanly around the obstacle and reaches the light source, where the bearing-only and gradient-only controllers fail in Figures~\ref{fig:bearing-fail} and~\ref{fig:gradient-fail}.}
+    \label{fig:fused-sim}
+\end{figure}
 
 \subsection{Real-World Flight}
 
