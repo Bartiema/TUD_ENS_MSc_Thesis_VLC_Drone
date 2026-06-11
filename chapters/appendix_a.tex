@@ -1,4 +1,40 @@
-\chapter{APPENDIX TITLE}
-\label{app:appendix_a}
+\chapter{Controller Parameters}
+\label{app:parameters}
 
-Appendix body.
+This appendix lists the parameter values used by the fused navigation controller of Chapter~\ref{chp:algorithm}. The symbols match those introduced in that chapter.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lll}
+        \hline
+        Parameter & Symbol & Value \\
+        \hline
+        \multicolumn{3}{l}{\textit{Bearing}} \\
+        Minimum signal strength to trust a bearing & --- & 5 \\
+        Bearing smoothing factor & $\beta$ & 0.7 \\
+        Frames a lost bearing is held before dropping & --- & 3 \\
+        \multicolumn{3}{l}{\textit{Light map and gradient}} \\
+        Grid cell size & $r$ & 0.05\,m \\
+        Cell smoothing factor & $\alpha$ & 0.5 \\
+        Neighbourhood radius & $d_{\min},d_{\max}$ & 0.05,\,3.0\,m \\
+        Weight regulariser & $\varepsilon$ & 0.01 \\
+        Minimum cells for a gradient & --- & 3 \\
+        Minimum weighted $R^2$ & --- & 0.5 \\
+        Minimum gradient magnitude & --- & 0.5 \\
+        \multicolumn{3}{l}{\textit{Fusion}} \\
+        Bearing weight & $w_B$ & 0.5 \\
+        Gradient weight & $w_G$ & 0.5 \\
+        \multicolumn{3}{l}{\textit{State machine and flight}} \\
+        Alignment tolerance & --- & 15\textdegree \\
+        Re-alignment threshold & --- & 30\textdegree \\
+        Arrival signal strength & --- & 7 \\
+        Search yaw rate & --- & 30\textdegree/s \\
+        Cruising forward speed & --- & 0.20\,m/s \\
+        Maximum forward speed & --- & 0.30\,m/s \\
+        Flight altitude & --- & 1.0\,m \\
+        Dwell time per beacon & --- & 1.0\,s \\
+        \hline
+    \end{tabular}
+    \caption{Parameter values used by the fused navigation controller.}
+    \label{tab:parameters}
+\end{table}
