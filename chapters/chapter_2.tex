@@ -135,9 +135,9 @@ Coverage is the criterion that matters most. The bearing already gives the contr
 
 The raw angular error, by contrast, is a misleading way to rank the methods, because it is entangled with coverage. A method that quietly fails on the hardest cells is never charged for them, so its average error flatters it, while a high-coverage method like weighted least squares is scored everywhere, including the cells right under the elevated source where the measured field bends sharply and behind the pillar where it leads around the obstacle rather than straight at it. This shows directly in the figures: on its own coverage weighted least squares records a mean error of 29 degrees, against 5.6 degrees for the low-coverage RANSAC fit. When we instead score every method on the same common set of cells, the cells that all of them estimate, the gap nearly closes. The plane, polynomial, RANSAC and weighted least-squares fits then agree to within about three degrees, from 5.6 to 8.5 degrees of mean error, with only finite differences staying noticeably noisier at 14.6 degrees; weighted least squares itself falls from 29 to 8.5 degrees, which shows that most of its apparent inaccuracy was simply the price of estimating the difficult cells the other methods decline. The remaining differences of a few degrees are not decisive: the bearing compensates them in open space, and the steep field under the source would not even appear in flight, where the drone follows a partial map and never measures that drop.
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=0.55\textwidth]{figures/gradient_analysis/gradient_method_comparison.png}
+    \includegraphics[height=0.86\textheight]{figures/gradient_analysis/gradient_method_comparison.png}
     \caption{Estimated gradient directions across the field for each method, coloured by angular error against the straight-to-source direction. The grey disc is the obstacle and the dashed circle the clearance the drone keeps. The large errors cluster under the source and behind the obstacle, where the field bends and pointing straight at the source is no longer the useful direction.}
     \label{fig:gradient-directions}
 \end{figure}
