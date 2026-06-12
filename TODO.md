@@ -20,7 +20,10 @@ the two gradient-method comparison plots). `fig:controller-overview` and
 
 # Background chapter (chapter_1.tex) — DONE
 
-All blank `\cite{}` placeholders filled; chapter builds clean.
+Builds clean; all `\cite{}` placeholders filled. Committed and pushed (squashed as
+"Add Background & Related Work chapter (Chapter 2)"). Sections: Related Work, Drone
+Platform, Visible Light Communication & Sensing, Light Signals, Bearing Angle
+Estimation, Gradient-Based Source Seeking, Simulation Environment.
 
 ### Citations wired
 - [x] UWB + WiFi fingerprinting — `zafari2019indoor`
@@ -28,24 +31,30 @@ All blank `\cite{}` placeholders filled; chapter builds clean.
 - [x] VLP — `zhuang2018vlp` (survey) + `kuo2014luxapose` (Luxapose)
 - [x] VLC definition — `pathak2015vlc`
 - [x] Lambertian — `komine2004vlc`
-- [x] Radio array direction finding — `schmidt1986music` (MUSIC)
+- [x] Square-wave harmonics / FFT — `oppenheim1999dsp`
+- [x] Amplitude-comparison direction finding — `iqbal2020amplitude`
+      (replaced the MUSIC analogy; `schmidt1986music` is now unused but kept in the bib)
 - [x] Source / extremum seeking — `ariyur2003extremum`, `zhang2006sourceseeking`,
-      `cochran2009sourceseeking` (framed: ESC dither -> Harry dither-free single-PD
-      -> our all-eight-PD, yaw-invariant)
-- [x] Harry's bearing / gradient / simulation environment — `huang2026lta`
+      `cochran2009sourceseeking` (ESC dither -> Harry's dither-free single-PD)
+- [x] CrazyFlie 2.1 platform — `crazyflie21`
+- [x] Harry's bearing / gradient / simulator and its validation — `huang2026lta`
 
-### Review-driven content changes applied
-- [x] Related Work expanded to a paragraph per family (RF, vision, VLP), descriptive only.
-- [x] Lambertian stated with the cos(phi)cos(psi)/d^2 relation (the "middle" level).
-- [x] Bearing "reliably" softened to an angular-coverage statement; line-of-sight /
-      direct-path limitation noted (reflections need stronger sensors).
-- [x] Gradient clarified: spatial gradient comes from the MAP (samples across positions),
-      eight PDs give the yaw-invariant per-location value; forward-references Ch 3.
-- [x] Obstacle-as-shadow mechanism stated in the gap paragraph.
+### Content and structure (applied)
+- [x] New "Drone Platform" section: CrazyFlie 2.1, low-level flight controller and
+      setpoints, onboard position estimate and drift, body-vs-world frames.
+- [x] New "Light Signals" section: defines the per-sensor signal m_n; real-world FFT
+      pipeline vs the simulation's idealised Webots irradiance, cross-referenced with
+      the Simulation Environment section both ways.
+- [x] Bearing: weighted-vector-sum formula added (matches the firmware).
+- [x] Lambertian stated as cos^m(alpha) cos(beta) / d^2 (m order noted; angles
+      renamed to alpha/beta to avoid the psi clash with the bearing).
+- [x] Related Work: fuller (RF, vision, VLP), enumerated contribution, WiFi/UWB split.
+- [x] Gradient/source-seeking kept to background only; contributions live in Ch 3.
+- [x] Simulation: fidelity grounded in Harry's flight-dynamics validation (CFD and
+      real flights); light model idealised; blimp-vs-CrazyFlie distinction explicit.
+- [x] Ch 3 cross-references pointed at Section `sec:lightsignal` (m_n) and `sec:bearing`.
 
 ### Still to confirm
-- [ ] First names in `zhang2006sourceseeking` — `Daniel {Arnold}` and
-      `Antranik {Siranosian}` — check against the PDF.
 - [ ] Related-Work / theory-section overlap (Marco flagged overlap risk).
 - [ ] Optional reference swaps: VLC `pathak2015vlc` vs the IEEE 802.15.7 standard;
       VLP `kuo2014luxapose` (Luxapose) vs Epsilon (Li et al., NSDI 2014).
@@ -83,11 +92,3 @@ volume / number / pages before final submission.
 | chapter_3.tex:37 | ground plane reduces motor EMI | `ott2009emc` |
 
 > Note: chapter_4.tex:8 also has a prose-style issue (parentheses), separate from citations.
-
-## 3. Bib entries (all now in the bib)
-Keys available in `bib/MyMScTUDESThesisBibFile.bib`: `zafari2019indoor`,
-`murartal2017orbslam2`, `kuo2014luxapose`, `komine2004vlc`, `schmidt1986music`,
-`floreano2015drones`, `zhuang2018vlp`, `pathak2015vlc`, `crazyflie21`, `harris1978windows`,
-`graeme1996photodiode`, `ott2009emc`, `ariyur2003extremum`, `zhang2006sourceseeking`,
-`cochran2009sourceseeking`. Plus `oppenheim1999dsp` and `mardia2000directional` (added
-earlier for chapter 2).
