@@ -22,7 +22,7 @@ Third, we smooth the per-channel magnitude over time. Each channel's freshly mea
 m_n[k] = \alpha_m\, m_n[k-1] + (1 - \alpha_m)\,\hat{m}_n[k],
 \label{eq:magiir}
 \end{equation}
-where $\alpha_m \in [0,1]$ sets how much of the old value is retained. The same $\alpha_m$ is applied to all eight channels so that their relative magnitudes, which encode the bearing to the beacon, are preserved while the jitter that vibration adds is suppressed. The factor trades responsiveness against smoothness: a larger $\alpha_m$ gives a steadier but slower signal, a smaller one a faster but noisier signal, and we use $\alpha_m = 0.5$. Smoothing the magnitude on its own would make the SNR lag behind the noise actually present, so the SNR used by the gate is reconstructed as this smoothed magnitude divided by the current-frame noise floor, which keeps the gate calibrated. The values of $\alpha_m$, $N_{\text{avg}}$, the guard band, and the other pipeline parameters are listed in Appendix~\ref{app:parameters}.
+where $\alpha_m \in [0,1]$ sets how much of the old value is retained. The same $\alpha_m$ is applied to all eight channels so that their relative magnitudes, which encode the bearing to the beacon, are preserved while the jitter that vibration adds is suppressed. The factor trades responsiveness against smoothness: a larger $\alpha_m$ gives a steadier but slower signal, a smaller one a faster but noisier signal, and we use $\alpha_m = 0.5$. Because this smoothing sits on top of the two-frame averaging of the first filter, the magnitude the controller finally acts on responds more slowly to the drone's motion than either stage would on its own. Smoothing the magnitude on its own would make the SNR lag behind the noise actually present, so the SNR used by the gate is reconstructed as this smoothed magnitude divided by the current-frame noise floor, which keeps the gate calibrated. The values of $\alpha_m$, $N_{\text{avg}}$, the guard band, and the other pipeline parameters are listed in Appendix~\ref{app:parameters}.
 
 \section{Filter Validation}
 
@@ -54,13 +54,13 @@ Two limitations follow from the setup. In free hover the drone drifts a little, 
 
 Ambient light is not really a source of noise; the motors, electrical interference, and reflections dominate that. Instead it raises the steady baseline that each photodiode reads. A photodiode has only a limited range, so a higher baseline leaves less room for the beacon's modulation to swing. The signal then varies less between its high and its low, less energy reaches the beacon's frequency bin, and the SNR drops. In a darkened room the baseline is low, the modulation swings freely, and the SNR rises.
 
-To test this we flew the same two-beacon traverse twice from the same take-off point, once in the dark and once with the room lights on. Figure~\ref{fig:ambient-traversal} shows the two flight paths over the light maps the drone built, and Figure~\ref{fig:ambient-snr} shows the overall SNR over each flight, taken as the maximum across the eight channels. The dark flight holds a higher SNR throughout, peaking above 30 against around 20 in the light. This confirms the effect: the lower baseline gives the beacon a stronger signal in its frequency bin.
+To test this we flew the same two-beacon traverse twice from the same take-off point, once in the dark and once with the room lights on. Figure~\ref{fig:ambient-traversal} shows the two flight paths over the light maps the drone built, and Figure~\ref{fig:ambient-snr} shows the overall SNR over each flight, taken as the maximum across the eight channels. The dark flight holds a higher SNR throughout, peaking above 30 against around 20 in the light. This confirms the effect: the lower baseline gives the beacon a stronger signal in its frequency bin. Because the drone steers itself, the two flights follow somewhat different paths, and we flew a single run per condition, so these figures are indicative of the effect rather than an exact like-for-like comparison.
 
 \begin{figure}[ht]
     \centering
     \subfigure[Darkened room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/dark_traversal_plot.png}}\\
     \subfigure[Lit room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/bright_traversal_plot.png}}
-    \caption{Two-beacon traverse flown in a darkened room and under full room lighting. Each panel shows the flight path to each of the two beacons over the light map the drone built, with cells coloured by the SNR recorded there.}
+    \caption{Two-beacon traverse, with the beacons modulating at 150 and 170\,Hz, flown in a darkened room and under full room lighting. Each panel shows the flight path to each of the two beacons over the light map the drone built, with cells coloured by the SNR recorded there.}
     \label{fig:ambient-traversal}
 \end{figure}
 
