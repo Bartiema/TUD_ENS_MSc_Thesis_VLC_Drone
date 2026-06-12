@@ -26,12 +26,25 @@ appendix if wanted.
 | Filter | What it does | Firmware knob | Off | On |
 |---|---|---|---|---|
 | Hardware 500 Hz LP | analogue anti-alias (removes motor/switching noise) | populate filter pads on the PCB (Ch. 4) | pads bare | filter soldered |
-| Welch averaging | averages overlapping FFT frames → lower variance | `PD_FFT_AVERAGES` (`pd_fft_analyzer.h`) | `1` | `2` |
-| Median noise floor | median instead of mean over off-target bins → spike-robust | noise-floor calc in `pdFftAnalyzerGetFrequency` (`pd_fft_analyzer.c`) | mean | median |
-| Magnitude EMA | per-channel exponential smoothing → lower jitter | `magIirAlpha` (`mode_manager.c`), via param or recompile | `0.0` | `0.5` |
+| Welch averaging | averages overlapping FFT frames → lower variance | `nav.fftAvg` param (`pdFftAverages`, `pd_fft_analyzer.c`) | `1` | `2` |
+| Median noise floor | median instead of mean over off-target bins → spike-robust | `nav.medianFloor` param (`pdNoiseFloorMedian`, `pd_fft_analyzer.c`) | `0` (mean) | `1` (median) |
+| Magnitude EMA | per-channel exponential smoothing → lower jitter | `nav.magAlpha` param (`magIirAlpha`, `mode_manager.c`) | `0.0` | `0.5` |
 
 DC removal and the Hamming window are part of the base analysis and stay **on** throughout.
-(The median floor has no runtime toggle yet — add a `mean` fallback to switch it.)
+
+All three software filters are now runtime params (no reflash needed between
+SW configs — only the HW step C0→C1 requires resoldering). Per-config values:
+
+| Config | `nav.fftAvg` | `nav.medianFloor` | `nav.magAlpha` |
+|---|---|---|---|
+| C0 | `1` | `0` | `0.0` |
+| C1 | `1` | `0` | `0.0` |
+| C2 | `2` | `0` | `0.0` |
+| C3 | `2` | `1` | `0.0` |
+| C4 | `2` | `1` | `0.5` |
+
+Firmware defaults (`pdFftAverages=2`, `pdNoiseFloorMedian=1`, `magIirAlpha=0.5`)
+correspond to the full pipeline (C4); set the params down to reach C0–C3.
 
 ## 3. Setup and controls (hold constant for every run)
 
