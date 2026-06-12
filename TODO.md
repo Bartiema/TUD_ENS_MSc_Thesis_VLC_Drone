@@ -12,10 +12,14 @@
 
 # Chapter 4 / `chapter_3.tex` (PCB Hardware Design) — open items
 
-- [ ] **500 Hz sample rate vs 500 Hz filter (Nyquist).** Bart says the numbers are right
-      and will explain why it works; the explanation belongs in `chp:realworld`. The
-      500/1600 Hz sentence stays in this chapter as a bare spec for now. Still decide
-      whether the bench 1600 Hz figure earns its place here (reviewers called it orphaned).
+- [ ] **500 Hz sample rate vs 500 Hz filter (Nyquist) — write up in `chp:realworld`.**
+      Reasoning from Bart: the 500 Hz sample rate was chosen first, then the 500 Hz low-pass
+      cut-off was matched to it without much deliberation. The beacons only modulate at
+      250 Hz or lower, i.e. at or below the 250 Hz Nyquist limit, so the signals of interest
+      are sampled correctly. The first-order 500 Hz filter is thus a loose anti-alias choice,
+      not a tight one; state this honestly in `chp:realworld`. The bench 1600 Hz sample rate
+      was dropped from `chp:hardware`; introduce it in `chp:realworld` or a later chapter
+      where the bench setup is actually used.
 
 ### Inbound cross-references other (skeleton) chapters should add when fleshed
 - [ ] `chapter_4.tex` (Real-World, `chp:realworld`): when describing "the PCB", reference
