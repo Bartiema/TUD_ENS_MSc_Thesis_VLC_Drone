@@ -3,20 +3,71 @@
 
 \section{From Intensity to SNR}
 
-In the real world, ambient light and background illumination corrupt the raw intensity used in simulation, so the system instead measures the SNR at each beacon's modulation frequency to isolate the target light.
+In the Webots simulation each photodiode is a built-in light sensor that reports the light landing on it directly from a modelled point light source, as described in Section~\ref{sec:lightsignal}, so the light signal is read straight off the sensor with no further processing. The real platform allows no such direct reading. On the drone each photodiode reports a single voltage in which the target beacon, the ambient room lighting, sunlight through a window, and reflections off the walls and floor are all summed together. The raw intensity is not meaningless, but on its own it is an unreliable navigation cue. It cannot tell us which part of the light comes from the beacon we are trying to reach and which part comes from everything else.
 
-A 500\,Hz hardware low-pass filter is populated on the PCB to prevent motor noise and reflection artefacts (which occur at frequencies above the Nyquist limit of the ADC) from aliasing into the FFT and corrupting the SNR estimate.
+To separate the beacon from this mixture we give each beacon its own modulation frequency and recover it in the frequency domain, exactly as introduced in Section~\ref{sec:lightsignal}. We sample each channel over a short window and take a fast Fourier transform, in which a beacon appears as a peak at its modulation frequency. The height of that peak is the light signal $m_n$ that the bearing estimator and the light map consume. We call the ratio of the peak to the surrounding noise the signal-to-noise ratio, or SNR, and it tells us how far a reading can be trusted. Modulation does not make the beacon immune to its surroundings: a strong enough background light leaves little of the sensor's range for the beacon's own modulation, so its peak shrinks and can be lost, an effect we return to in Section~\ref{sec:ambient}. What it buys us is the ability to attribute a measured signal to a specific beacon and to reject readings whose SNR is too low to act on. We demonstrate this beacon separation in Chapter~\ref{chp:multibeacon}.
 
-Beyond the base algorithm's existing DC removal and Hamming window, three additional filters were introduced: block-based estimation, noise floor estimation, and per-channel magnitude IIR filters, to improve signal stability during flight.
+This frequency analysis only helps if the noise does not masquerade as signal, and in flight there is a great deal of noise to contend with. The spinning motors couple mechanical vibration into the board and draw current that the analogue front end picks up as electrical interference, and light reflecting off nearby surfaces returns delayed copies of the beacon by indirect paths. Much of this energy sits at frequencies well above the beacons' modulation band, and if it is sampled without being removed first it does not simply vanish: it folds back, or aliases, into the lower frequencies where the beacons live and corrupts the very peaks we depend on~\cite{oppenheim1999dsp}. Suppressing this noise is the job of the filters described in the rest of this section, split between the analogue domain before sampling and the digital domain after.
+
+The first filter acts in the analogue domain, before the signal is ever sampled. The board populates a first-order low-pass filter with a cut-off of $f_c = 500$\,Hz onto the optional-filter pads provided by the photodiode board of Chapter~\ref{chp:hardware}, so that high-frequency content is attenuated before it can alias. We sample each channel at $f_s = 500$\,Hz, which places the Nyquist limit at 250\,Hz, and the beacons modulate at 250\,Hz or below, so the signals of interest are sampled correctly. The cut-off was matched to the sample rate rather than tuned tightly to the beacon band. It is best understood as a loose anti-aliasing measure that removes the worst out-of-band energy, not as a sharply placed filter. A first-order roll-off is gentle, so content just above the Nyquist limit is only weakly attenuated and some of it still aliases into the band. What the filter buys us is the removal of the strongest high-frequency energy, while the beacons themselves sit well below Nyquist where they are sampled cleanly.
+
+The remaining filters act in software, on each sampled window, and build on two steps the base frequency analysis already performs. Before the transform it subtracts the mean of the window. This removes the constant offset, so only the fluctuating part of the signal, where the modulation lives, reaches the transform. It also multiplies the window by a Hamming window, so the abrupt ends of the window do not smear energy across the spectrum as leakage, a problem Harris~\cite{harris1978windows} surveys in detail. The transform itself has a frequency resolution of $\Delta f = f_s / N$, which for an $N = 256$ point transform at 500\,Hz is about 1.95\,Hz per bin, fine enough to separate beacons spaced a few hertz apart.
+
+First, we reduce the variance of the spectrum itself. Rather than read a peak from a single transform, we average the magnitude spectra of several successive windows that overlap by half their length. This averaging of overlapping windows is a standard technique introduced by Welch~\cite{welch1967}. For independent windows it would lower the variance of the estimate by a factor of $N_{\text{avg}}$, but the overlap leaves successive windows correlated, so the gain is smaller, and with only $N_{\text{avg}} = 2$ windows it is modest. The cost is latency, since each averaged spectrum spans several windows and the signal then responds more slowly to the drone's motion. We therefore keep $N_{\text{avg}}$ small and accept the marginal smoothing in exchange for a responsive reading.
+
+Second, we make the noise floor robust to spikes. We want an estimate that an occasional motor harmonic or a pickup at the mains frequency cannot inflate, so over the off-target bins we take the median rather than the mean, since the median is barely moved by such outliers. The floor is taken over all spectrum bins except a guard band around the beacon frequency and its first four harmonics, which we exclude so the beacon's own energy is not counted as noise. This costs little, since computing a median means sorting the bins rather than summing them, but at this window size the expense is negligible on the drone's microcontroller.
+
+Third, we smooth the per-channel magnitude over time. Each channel's freshly measured magnitude $\hat{m}_n$ is blended with its previous smoothed value through a first-order exponential moving average, an infinite-impulse-response low-pass filter~\cite{oppenheim1999dsp},
+\begin{equation}
+m_n[k] = \alpha_m\, m_n[k-1] + (1 - \alpha_m)\,\hat{m}_n[k],
+\label{eq:magiir}
+\end{equation}
+where $\alpha_m \in [0,1]$ sets how much of the old value is retained. The same $\alpha_m$ is applied to all eight channels so that their relative magnitudes, which encode the bearing to the beacon, are preserved while the jitter that vibration adds is suppressed. The factor trades responsiveness against smoothness: a larger $\alpha_m$ gives a steadier but slower signal, a smaller one a faster but noisier signal, and we use $\alpha_m = 0.5$. Smoothing the magnitude on its own would make the SNR lag behind the noise actually present, so the SNR used by the gate is reconstructed as this smoothed magnitude divided by the current-frame noise floor, which keeps the gate calibrated. The values of $\alpha_m$, $N_{\text{avg}}$, the guard band, and the other pipeline parameters are listed in Appendix~\ref{app:parameters}.
 
 \section{Filter Validation}
 
-\textit{Question: are the hardware low-pass filter and the additional software filters necessary, and what effect does each have on signal stability during flight?}
+We test whether each stage of the pipeline earns its place and what it contributes in flight. The drone is held at a fixed pose relative to a single 150\,Hz beacon, so the true signal is constant and any variation we record over time is the noise and jitter the filters are meant to remove. From each held run we take two numbers: the mean SNR, which reflects the signal level, and the standard deviation of the SNR, which reflects its jitter. The hardware filter and the median floor act mainly on the level, by removing aliased motor energy and rejecting spikes that inflate the noise estimate, while Welch averaging and the magnitude smoothing act mainly on the jitter.
 
-The necessity of the 500\,Hz hardware low-pass filter is shown by comparing SNR measurements taken with and without it, and comparing measurements with and without the software filters then shows the reduction in noise and signal variance each stage contributes.
+We build the pipeline up one stage at a time, starting from no filtering and adding the hardware filter, then Welch averaging, then the median floor, then the magnitude smoothing, so each stage's contribution can be read on its own. Each configuration is measured in two states: with the motors off, holding the drone at the flight altitude on a rig, and in free hover with the motors running, since the spinning motors are the main source of the vibration and electrical interference the filters target. The motors-off readings give a clean ceiling, and the gap to the motors-on readings is the cost of flight. Table~\ref{tab:filter-snr} reports the mean and standard deviation for each stage and state, and reading down the motors-on column shows how each stage closes that gap.
+
+Two limitations follow from the setup. In free hover the drone drifts a little, so the motors-on standard deviation includes a small contribution from the changing pose rather than from jitter alone; we keep the beacon at a moderate distance to limit this, and the mean is unaffected by unbiased drift. The room is kept dark so that ambient light, whose effect we study separately in Section~\ref{sec:ambient}, does not vary between runs.
+
+\begin{table}[ht]
+    \centering
+    \caption{Overall SNR, the maximum across the eight channels, at the beacon's 150\,Hz modulation frequency as each stage is added to the pipeline, with the drone held at a fixed pose. Each cell is the mean $\pm$ standard deviation over a steady hold: the mean reflects the signal level and the standard deviation its jitter. Values are placeholders pending measurement.}
+    \label{tab:filter-snr}
+    \begin{tabular}{l c c}
+        \hline
+        Configuration & Motors off & Motors on \\
+        \hline
+        No filtering        & -- & -- \\
+        + Hardware          & -- & -- \\
+        + Welch averaging   & -- & -- \\
+        + Median floor      & -- & -- \\
+        + Magnitude EMA     & -- & -- \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \section{Effect of Ambient Lighting}
+\label{sec:ambient}
 
-\textit{Question: how does ambient room lighting affect the SNR field and navigability?}
+Ambient light is not really a source of noise; the motors, electrical interference, and reflections dominate that. Instead it raises the steady baseline that each photodiode reads. A photodiode has only a limited range, so a higher baseline leaves less room for the beacon's modulation to swing. The signal then varies less between its high and its low, less energy reaches the beacon's frequency bin, and the SNR drops. In a darkened room the baseline is low, the modulation swings freely, and the SNR rises.
 
-Comparative flights with the room lights on and off reveal how much background illumination degrades the SNR signal and how well the modulation-based filtering resists it.
+To test this we flew the same two-beacon traverse twice from the same take-off point, once in the dark and once with the room lights on. Figure~\ref{fig:ambient-traversal} shows the two flight paths over the light maps the drone built, and Figure~\ref{fig:ambient-snr} shows the overall SNR over each flight, taken as the maximum across the eight channels. The dark flight holds a higher SNR throughout, peaking above 30 against around 20 in the light. This confirms the effect: the lower baseline gives the beacon a stronger signal in its frequency bin.
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[Darkened room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/dark_traversal_plot.png}}\\
+    \subfigure[Lit room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/bright_traversal_plot.png}}
+    \caption{Two-beacon traverse flown in a darkened room and under full room lighting. Each panel shows the flight path to each of the two beacons over the light map the drone built, with cells coloured by the SNR recorded there.}
+    \label{fig:ambient-traversal}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[Darkened room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/dark_snr_plot.png}}\\
+    \subfigure[Lit room]{\includegraphics[width=0.95\textwidth]{figures/ambient_light_flights/bright_snr_plot.png}}
+    \caption{Overall SNR over the course of the two-beacon traverse, taken as the maximum across the eight channels, in a darkened room and under full room lighting. The marked transitions separate the approach to the first beacon from the approach to the second.}
+    \label{fig:ambient-snr}
+\end{figure}
