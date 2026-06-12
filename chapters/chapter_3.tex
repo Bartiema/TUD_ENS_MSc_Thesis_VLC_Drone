@@ -3,9 +3,9 @@
 
 \section{The Original Prototype}
 
-Meeting the size, weight, and power limits of a micro-drone calls for hardware built for that platform, and the first attempt did not yet meet them. We first realised the bearing and gradient algorithms on an earlier prototype built around a Teensy~4.1 microcontroller, which read the photodiodes correctly but was far too large, heavy, and power-hungry to fly on a micro-drone, and carried far more computation than the algorithms need. The prototype combined two separate boards: a main board carrying the Teensy and its power supply, and a sensor board holding the photodiodes and their amplifiers. It served its purpose as a proof of concept, showing that a ring of photodiodes can recover a bearing toward the light, but it was never meant to fly.
+Meeting the size, weight, and power limits of a micro-drone calls for hardware built for that platform, and the first attempt did not yet meet them. We first realised the bearing and gradient algorithms on an earlier prototype built around a Teensy~4.1 microcontroller. It read the photodiodes correctly, but was far too large, heavy, and power-hungry to fly on a micro-drone, and carried far more computation than the algorithms need. The prototype was made of three separate parts: the Teensy that ran the algorithms, a circular carrier board that distributed power and provided sixteen connectors, and sixteen small boards that each held one photodiode and plugged into the carrier. It served its purpose as a proof of concept, showing that a ring of photodiodes can recover a bearing toward the light, but it was never meant to fly.
 
-Much of its bulk came from the parts it was built from. The sensor board used ready-made devices that each integrate a photodiode and its transimpedance amplifier in a single package, the OPT101, which are convenient to wire up but large, and it provided space for sixteen photodiodes, twice the eight that prior work by Harry Huang showed to be sufficient~\cite{huang2026lta}, as Chapter~\ref{chp:background} sets out. The Teensy, in turn, is a capable general-purpose microcontroller with far more processing power than reading eight slow light signals demands. Figure~\ref{fig:old-prototype} shows the assembled prototype.
+Much of its bulk came from the parts it was built from. Each photodiode sat on its own small board as a ready-made device, the OPT101, which integrates a photodiode and its transimpedance amplifier in a single package and is convenient to wire up but large. The carrier had room for sixteen of these boards, twice the eight that prior work by Harry Huang showed to be sufficient~\cite{huang2026lta}, as Chapter~\ref{chp:background} sets out, and the Teensy in turn is a general-purpose microcontroller with far more processing power than reading eight slow light signals demands. Figure~\ref{fig:old-prototype} shows the assembled prototype.
 
 \begin{figure}[h]
     \centering
@@ -18,21 +18,66 @@ This chapter presents a redesigned board that keeps the same sensing principle w
 
 \section{Design Requirements}
 
-The new board had to correct the shortcomings of the prototype while fitting the CrazyFlie~2.1, the micro-drone this work targets. As an expansion deck for so small a drone there is very little budget to work with: the board must stay light enough for the drone to lift and small enough to sit on its frame, which bound it to a mass below 13~grams and a diagonal footprint of at most 44~millimetres~\cite{crazyflie21}. Every choice that follows is shaped by staying within these two numbers.
+The new board had to correct the shortcomings of the prototype while fitting the CrazyFlie~2.1, the micro-drone this work targets. Its budget is tight. The CrazyFlie lifts about 15~grams of payload~\cite{crazyflie21}, of which the FlowDeck~V2 optical-flow positioning deck~\cite{flowdeckv2} the drone also carries takes some 2~grams, leaving the board about 13~grams. It must also sit on the drone's frame, which limits it to a diagonal footprint of at most 44~millimetres. Every choice that follows is shaped by staying within these two numbers.
 
-Three design decisions follow directly from them. First, the board uses eight photodiodes rather than sixteen, the number prior work found sufficient to recover a reliable bearing, which halves both the sensor count and the area they occupy. Second, it replaces the bulky ready-made modules of the prototype with compact surface-mount photodiode and amplifier components, which take far less space and weight for the same function. Third, it carries no microcontroller of its own: rather than the prototype's Teensy, all computation is offloaded to the CrazyFlie's existing processor, so the board only has to sense and digitise the light and never spends mass or power on a processor it does not need.
+Three design decisions follow directly from them. First, the board uses eight photodiodes rather than sixteen, the number prior work by Harry Huang found sufficient to recover a reliable bearing~\cite{huang2026lta}, which halves both the sensor count and the area they occupy. Second, it replaces the bulky ready-made modules of the prototype with compact surface-mount photodiode and amplifier components, which take far less space and weight for the same function. Third, it carries no microcontroller of its own: rather than the prototype's Teensy, all computation is offloaded to the CrazyFlie's existing processor, so the board only has to sense and digitise the light and never spends mass or power on a processor it does not need.
 
 \section{Circuit Design}
 
-Each of the eight photodiodes is paired with a transimpedance amplifier that turns the small current the photodiode produces into a voltage the rest of the circuit can read, the standard way of reading a photodiode that Graeme sets out in detail~\cite{graeme1996photodiode}. A photodiode outputs a current proportional to the light falling on it, but this current is far too small to measure directly, so the amplifier both converts it to a voltage and scales it into a useful range. The eight amplifiers come from shared quad operational-amplifier packages, the OPA4350, chosen for their low noise and rail-to-rail output.
+Each of the eight photodiodes is paired with a transimpedance amplifier that turns the small current the photodiode generates into a voltage the rest of the circuit can read, the standard way of reading a photodiode that Graeme sets out in detail~\cite{graeme1996photodiode}. A photodiode generates a current proportional to the light falling on it, but this current is far too small to measure directly, so the amplifier both converts it to a voltage and scales it into a useful range. The eight amplifiers come from shared quad operational-amplifier packages, chosen for their low noise and rail-to-rail output.
 
-The eight voltage outputs are then digitised together. A single analogue-to-digital converter, the ADS7953, samples all eight channels in turn and communicates the readings to the CrazyFlie over an SPI bus, supplying the full set of eight channel readings that the bearing and gradient estimates work from at each sample. A precision voltage reference, the REF5025A, fixes the converter's full-scale range so that the readings stay consistent regardless of fluctuations in the supply, and a low-dropout regulator, the TPS73133, isolates the analogue circuitry from the noisier battery rail so that switching noise does not corrupt the faint photodiode signals. Together these keep the eight readings stable and comparable across channels, which is what the bearing and gradient estimates depend on.
+\begin{figure}[h]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[
+        >=Latex,
+        box/.style={draw, rounded corners, align=center, minimum height=9mm,
+                    inner sep=4pt, font=\small},
+        opt/.style={box, dashed}
+    ]
+        \node[box] (pd)   at (0,0)      {Photodiode\\($\times 8$)};
+        \node[box] (tia)  at (3.0,0)    {Transimpedance\\amplifier};
+        \node[opt] (filt) at (6.2,0)    {Optional\\filter};
+        \node[box] (adc)  at (8.9,0)    {ADC};
+        \node[box] (cf)   at (11.4,0)   {CrazyFlie};
+        \node[box] (ref)  at (8.9,-2.0) {Reference\\and supply};
 
-The board also provides a first-order filter at each channel. Each channel carries pads where a single resistor and capacitor can form a low-pass or high-pass filter, so the same board can be tuned to the noise it meets in practice rather than redesigned for it. For the flights in this work the low-pass option is populated, to reject the high-frequency pickup from the drone's motors before it reaches the converter; Chapter~\ref{chp:realworld} sets the cut-off used and shows why this filtering is needed.
+        \draw[->] (pd)   -- (tia);
+        \draw[->] (tia)  -- (filt);
+        \draw[->] (filt) -- (adc);
+        \draw[->] (adc)  -- (cf) node[midway,above,font=\scriptsize]{SPI};
+        \draw[->] (ref)  -- (adc);
+        \draw[->] (ref)  -| (tia);
+        \draw[->] (cf)   |- (ref) node[pos=0.25,right,font=\scriptsize]{power};
+    \end{tikzpicture}}
+    \caption{Signal chain on the redesigned board. Each of the eight photodiodes feeds a transimpedance amplifier and an optional filter; the analogue-to-digital converter then samples all eight channels and sends them to the CrazyFlie over SPI. A precision reference and the supply, drawn from the CrazyFlie, feed both the amplifiers and the converter.}
+    \label{fig:signal-chain}
+\end{figure}
+
+The eight voltage outputs are then digitised together, completing the signal chain shown in Figure~\ref{fig:signal-chain}. A single analogue-to-digital converter scans all eight channels and sends the readings to the CrazyFlie over a four-wire SPI bus: a clock, a chip-select, and a data line in each direction. Each scan gives the bearing and gradient estimates a full set of eight readings; on the drone the converter scans at 500~Hz, while the standalone bench board used below runs faster, at 1600~Hz. A precision voltage reference feeds both the amplifiers and the converter, setting the level the amplifier outputs swing around and the converter's full-scale range so that the readings stay consistent. A low-dropout regulator then conditions the supply the board draws from the CrazyFlie, so that switching noise does not corrupt the faint photodiode signals. Together these keep the eight readings stable and comparable across channels, which is what the bearing and gradient estimates depend on. Table~\ref{tab:components} lists the part chosen for each of these functions.
+
+Each channel also has an optional first-order filter between the amplifier and the converter, so the board can be tuned to the noise of a given deployment rather than redesigned for it. A solder bridge or a pair of pads lets a low-pass or high-pass filter be placed there.
+
+\begin{table}[h]
+    \centering
+    \caption{Key components of the redesigned board, by function.}
+    \label{tab:components}
+    \begin{tabular}{ll}
+        \hline
+        Function & Part \\
+        \hline
+        Photodiode, eight off & Vishay VEMD4200 \\
+        Transimpedance amplifier & Texas Instruments OPA4350 \\
+        Analogue-to-digital converter & Texas Instruments ADS7953 \\
+        Voltage reference & Texas Instruments REF5025A \\
+        Low-dropout regulator & Texas Instruments TPS73133 \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \section{PCB Layout}
 
-The layout turns the circuit into a physical board the drone can carry, and two concerns shape it: even angular coverage and tolerance of the drone's electrical noise. The eight photodiodes are placed at equal 45\textdegree{} intervals around the board, so that together they cover the full 360\textdegree{} of azimuth evenly. This even spacing matters because the bearing algorithm compares the photodiodes against one another to find the direction of the light, so any gap in the coverage would leave directions the ring senses poorly. The board's outline is shaped to carry each photodiode out to a point at its own angle, with the amplifiers and the converter grouped in the centre, as Figure~\ref{fig:new-board} shows.
+With the circuit designed, the layout turns it into a physical board the drone can carry, and two concerns shape it: even angular coverage and tolerance of the drone's electrical noise. The eight photodiodes are placed at equal 45\textdegree{} intervals around the board, so that together they cover the full 360\textdegree{} of azimuth evenly. This even spacing matters because the bearing algorithm compares the photodiodes against one another to find the direction of the light, so any gap in the coverage would leave directions the ring senses poorly. The board's outline is shaped to carry each photodiode out to a point at its own angle, with the amplifiers and the converter grouped in the centre, as Figure~\ref{fig:new-board} shows. The board mounts on the CrazyFlie through the two expansion headers seen there, which carry its power, its ground, and the SPI bus, so it needs no wiring of its own.
 
 \begin{figure}[h]
     \centering
@@ -41,6 +86,6 @@ The layout turns the circuit into a physical board the drone can carry, and two 
     \label{fig:new-board}
 \end{figure}
 
-The layout also has to cope with the electrically noisy environment of a flying drone. The motors draw large, rapidly switching currents that radiate electromagnetic interference, which can couple into the faint photodiode signals and corrupt the readings. To reduce this the board carries a ground plane beneath the signal traces, which shields them and gives the return currents a low-impedance path back to the supply, following the standard electromagnetic-compatibility practice that Ott sets out~\cite{ott2009emc}.
+The layout also has to cope with the electrically noisy environment of a flying drone. The motors draw large, rapidly switching currents that radiate electromagnetic interference, which can couple into the faint photodiode signals and corrupt the readings. To reduce this, the board carries a ground plane beneath the signal traces, which shields them and gives the return currents a low-impedance path back to the supply, following the standard electromagnetic-compatibility practice that Ott sets out~\cite{ott2009emc}.
 
-Before integrating the board with the drone, we tested it on its own. We connected the assembled board to a standalone Teensy microcontroller, used here only as a bench instrument and not as the old prototype's processor, and confirmed that all eight channels produced correct voltage readings in response to light, so that any problem later seen in flight could be traced to the integration or the software rather than to the board itself. With the board verified in isolation, Chapter~\ref{chp:realworld} describes how its raw readings are turned into the signal-strength estimates the controller uses in flight.
+The finished board comes in at about 6~grams and roughly 42~millimetres across, well within the 13~gram mass limit and inside the 44~millimetre footprint it was designed to meet. Before integrating the board with the drone, we tested it on its own. We connected the assembled board to a standalone Teensy microcontroller, used here only as a bench instrument rather than as the old prototype's processor. We then confirmed that every one of the eight channels responded to light; with that basic check passed, any fault later seen in flight could be traced to the integration or the software rather than to the board. Chapter~\ref{chp:realworld} then describes how the board's raw readings are turned into the signal-strength estimates the controller uses in flight.
