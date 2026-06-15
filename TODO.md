@@ -1,9 +1,5 @@
 # Thesis TODO
 
-## Figures still to produce (`\missingfigure` placeholders)
-- [ ] `fig:old-prototype` — `chapters/chapter_3.tex` (PCB): photo of the original
-      three-part Teensy 4.1 prototype. No photo exists on the `figures` branch yet.
-
 ## Notes
 - Raw simulation data is in `data/` (trajectories + precomputed map) if further
   analysis is needed.
