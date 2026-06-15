@@ -26,35 +26,55 @@ where $\alpha_m \in [0,1]$ sets how much of the old value is retained. The same 
 
 \section{Filter Validation}
 
-We test whether each stage of the pipeline earns its place and what it contributes in flight. The drone is held at a fixed pose relative to a single 150\,Hz beacon, so the true signal is constant and any variation we record over time is the noise and jitter the filters are meant to remove. From each held run we take two numbers: the mean SNR, which reflects the signal level, and the standard deviation of the SNR, which reflects its jitter. The hardware filter and the median floor act mainly on the level, by removing aliased motor energy and rejecting spikes that inflate the noise estimate, while Welch averaging and the magnitude smoothing act mainly on the jitter.
+We test whether each stage of the pipeline earns its place and what it contributes in flight. The drone is held at a fixed pose, 95\,cm from a single 150\,Hz beacon, so the true signal is constant and any variation we record over time is the noise and jitter the filters are meant to remove. From each held run we take two numbers: the mean SNR, which reflects the signal level, and the standard deviation of the SNR, which reflects its jitter.
 
-We build the pipeline up one stage at a time, starting from no filtering and adding the hardware filter, then Welch averaging, then the median floor, then the magnitude smoothing, so each stage's contribution can be read on its own. Each configuration is measured in two states: with the motors off, holding the drone at the flight altitude on a rig, and in free hover with the motors running, since the spinning motors are the main source of the vibration and electrical interference the filters target. The motors-off readings give a clean ceiling, and the gap to the motors-on readings is the cost of flight. Table~\ref{tab:filter-snr} reports the mean and standard deviation for each stage and state, and reading down the motors-on column shows how each stage closes that gap.
-
-Two limitations follow from the setup. In free hover the drone drifts a little, so the motors-on standard deviation includes a small contribution from the changing pose rather than from jitter alone; we keep the beacon at a moderate distance to limit this, and the mean is unaffected by unbiased drift. The room is kept dark so that ambient light, whose effect we study separately in Section~\ref{sec:ambient}, does not vary between runs.
+We build the pipeline up one stage at a time, starting from no filtering and adding the hardware filter, then Welch averaging, then the median floor, then the magnitude smoothing, so each stage's contribution can be read on its own. Each configuration is measured in two states: with the motors off, holding the drone at the flight altitude on a rig, and in free hover with the motors running, since the spinning motors are the main source of the vibration and electrical interference the filters target. The motors-off readings give a clean ceiling, and the gap to the motors-on readings is the cost of flight.
 
 \begin{table}[ht]
     \centering
-    \caption{Overall SNR, the maximum across the eight channels, at the beacon's 150\,Hz modulation frequency as each stage is added to the pipeline, with the drone held at a fixed pose. Each cell is the mean $\pm$ standard deviation over a steady hold: the mean reflects the signal level and the standard deviation its jitter. Values are placeholders pending measurement.}
+    \caption{Overall SNR, the maximum across the eight channels, at the beacon's 150\,Hz modulation frequency as each stage is added to the pipeline, with the drone held 95\,cm from the beacon. Each cell is the mean $\pm$ standard deviation over a steady hold, pooled across three repeats.}
     \label{tab:filter-snr}
     \begin{tabular}{l c c}
         \hline
         Configuration & Motors off & Motors on \\
         \hline
-        No filtering        & -- & -- \\
-        + Hardware          & -- & -- \\
-        + Welch averaging   & -- & -- \\
-        + Median floor      & -- & -- \\
-        + Magnitude EMA     & -- & -- \\
+        No filtering        & $23.9 \pm 3.9$  & $13.9 \pm 2.1$ \\
+        + Hardware          & $17.4 \pm 1.3$  & $11.4 \pm 2.8$ \\
+        + Welch averaging   & $16.3 \pm 0.9$  & $15.1 \pm 4.6$ \\
+        + Median floor      & $74.2 \pm 19.2$ & $31.9 \pm 7.5$ \\
+        + Magnitude EMA     & $76.6 \pm 17.8$ & $32.1 \pm 5.3$ \\
         \hline
     \end{tabular}
 \end{table}
+
+The result in Table~\ref{tab:filter-snr} is dominated by the median noise floor. The hardware filter and Welch averaging, added on their own, change the level only slightly, and the hardware filter even lowers it. The median floor then transforms the result, more than doubling the in-flight SNR from about 15 to 32 and more than quadrupling the motors-off SNR from about 16 to 74. The reason lies in the definition of the SNR as the peak divided by the noise floor: the median ignores the occasional spectral spike that inflates a mean-based floor, so the same peak is divided by a smaller and more representative noise level, and the SNR it yields is correspondingly larger.
+
+The magnitude smoothing adds little to the level but steadies the reading, lowering the in-flight standard deviation from 7.5 to 5.3. The standard deviations grow at the median-floor step only because the SNR values themselves grow, so the cleanest measure of the smoothing is this last step, where the mean barely changes. Flight remains costly throughout: even with the full pipeline the in-flight SNR of about 32 sits well below the motors-off ceiling of about 77, confirming that the spinning motors are the main disturbance the pipeline must absorb.
+
+The hardware filter deserves a second look, since on its own it did not raise the SNR. We therefore measured the full pipeline once more with the filter unpopulated, in Table~\ref{tab:filter-hw}. Removing it drops the SNR from about 77 to 33 with the motors off and from 32 to 22 in flight, so it is not redundant. It does little before the median floor is in place, but the two are complementary: by removing aliased high-frequency energy it keeps the noise floor low, and together they give the largest signal.
+
+\begin{table}[ht]
+    \centering
+    \caption{Effect of the hardware anti-alias filter within the full software pipeline, with and without the populated 500\,Hz filter. Overall SNR, mean $\pm$ standard deviation.}
+    \label{tab:filter-hw}
+    \begin{tabular}{l c c}
+        \hline
+        Configuration & Motors off & Motors on \\
+        \hline
+        Full pipeline                     & $76.6 \pm 17.8$ & $32.1 \pm 5.3$ \\
+        Full pipeline, no hardware filter & $32.7 \pm 3.6$  & $21.5 \pm 2.8$ \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Two limitations follow from the setup. In free hover the drone drifts a little, so the motors-on standard deviation includes a small contribution from the changing pose rather than from jitter alone, though the mean is unaffected by unbiased drift. The runs were flown under the same ambient room lighting as the experiment of Section~\ref{sec:ambient}, held constant across all configurations, so the lighting does not confound the comparison between them.
 
 \section{Effect of Ambient Lighting}
 \label{sec:ambient}
 
 Ambient light is not really a source of noise; the motors, electrical interference, and reflections dominate that. Instead it raises the steady baseline that each photodiode reads. A photodiode has only a limited range, so a higher baseline leaves less room for the beacon's modulation to swing. The signal then varies less between its high and its low, less energy reaches the beacon's frequency bin, and the SNR drops. In a darkened room the baseline is low, the modulation swings freely, and the SNR rises.
 
-To test this we flew the same two-beacon traverse twice from the same take-off point, once in the dark and once with the room lights on. Figure~\ref{fig:ambient-traversal} shows the two flight paths over the light maps the drone built, and Figure~\ref{fig:ambient-snr} shows the overall SNR over each flight, taken as the maximum across the eight channels. The dark flight holds a higher SNR throughout, peaking above 30 against around 20 in the light. This confirms the effect: the lower baseline gives the beacon a stronger signal in its frequency bin. Because the drone steers itself, the two flights follow somewhat different paths, and we flew a single run per condition, so these figures are indicative of the effect rather than an exact like-for-like comparison.
+To test this we flew the same two-beacon traverse twice from the same take-off point, once in the dark and once with the room lights on. Under the room lights the photodiodes read roughly 360 to 450\,lux facing up and 120 to 160\,lux to the side at flight altitude, against 12 to 22\,lux and 2 to 22\,lux respectively in the dark. Figure~\ref{fig:ambient-traversal} shows the two flight paths over the light maps the drone built, and Figure~\ref{fig:ambient-snr} shows the overall SNR over each flight, taken as the maximum across the eight channels. The dark flight holds a higher SNR throughout, peaking above 30 against around 20 in the light. This confirms the effect: the lower baseline gives the beacon a stronger signal in its frequency bin. Because the drone steers itself, the two flights follow somewhat different paths, and we flew a single run per condition, so these figures are indicative of the effect rather than an exact like-for-like comparison.
 
 \begin{figure}[ht]
     \centering
