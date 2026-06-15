@@ -1,12 +1,5 @@
 # Thesis TODO
 
-## Data still to measure
-- [ ] `tab:filter-snr` — `chapters/chapter_4.tex` (Real-World): per-channel SNR
-      (all 8 photodiodes) at the beacon modulation frequency, for the 4 filter
-      configurations (no filtering / hardware only / software only / hardware +
-      software) × {stationary, in flight} = 8 rows. All 64 cells are `--`
-      placeholders pending bench + in-flight measurement.
-
 ## Notes
 - Raw simulation data is in `data/` (trajectories + precomputed map) if further
   analysis is needed.
