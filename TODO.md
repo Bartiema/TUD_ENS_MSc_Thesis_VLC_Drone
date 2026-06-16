@@ -8,7 +8,38 @@
   the beacon direction from further away. NOT shown by the ambient-light figures
   (same take-off/setup both flights), so it was kept out of `chp:realworld` §Effect
   of Ambient Lighting. Decide its home later (Conclusions or Future Work) once those
-  chapters are fleshed.
+  chapters are fleshed. NOTE: now also surfaced in `chp:obstacle` §Generalisation to
+  a Blimp Platform (blimp's higher SNR -> longer range), with a forward ref to
+  `chp:futurework`.
+- [ ] **Future Work:** add a paragraph on the blimp's much higher SNR and its
+      probable cause (buoyancy means motors run only when moving and at lower power
+      -> less vibration/EMI than the always-spinning CrazyFlie; the PCB itself is
+      unchanged and in the same place). `chp:obstacle` §Blimp now forward-refs
+      `chp:futurework` for it. Keep causes hypotheses, not asserted facts.
+- [ ] **Blimp SNR numbers:** Harry's paper (`2026_Sensys_HarryHuang.pdf`) has NO
+      direct CrazyFlie-vs-blimp SNR comparison; its only SNR figure is an arrival
+      threshold of 50 (target reached within ~20 cm). The higher-SNR claim is kept
+      qualitative for now. ASK HARRY for exact comparative numbers before final.
+- [ ] **Blimp control change:** confirm with Harry whether running on the blimp needed
+      only re-tuned PID gains or a different low-level controller / mixer for the motor
+      layout. Text currently says "with only the low-level control adapted to its motor
+      layout" (deliberately loose). Tighten once confirmed.
+- [ ] **Blimp narrative (confirm with Harry):** chapter now states Harry's bearing/gradient
+      methods were sim-only, and the REAL blimp flights use OUR PCB + fused controller
+      (per Bart), showing multi-target, obstacle avoidance, and higher SNR. Verify this
+      framing matches what Harry's paper claims/authorship before final.
+- [x] Geometry of the real-flight setup is now stated as indicative, not a hard
+      measured truth (done in `chp:obstacle` §Setup caption + §SNR Field Mapping
+      odometry-drift paragraph).
+
+---
+
+# Multi-Beacon chapter (chapter_5.tex) — possible addition
+- [ ] We have lawnmower SNR-field survey data for the multi-beacon (no-obstacle)
+      case too (`figures/real_data_gather_flights/{150,170}hz_lawnmower_no_obstacle.png`,
+      `data/real_data_gather_flights/data_gather_{150,170}hz_..._0.20ms.csv`). Consider
+      adding a real-room SNR field map to the Multi-Beacon chapter to mirror the
+      field-mapping section being added to the Obstacle chapter (`chp:obstacle`).
 
 ---
 
