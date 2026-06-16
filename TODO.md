@@ -14,12 +14,8 @@
 
 # Open cross-chapter items
 
-- [ ] The bench 1600 Hz sample rate was dropped from `chp:hardware`; still to be introduced
-      in a later chapter where the bench setup is actually used (not yet placed).
 - [ ] `chapter_2.tex` (Algorithm) System Overview and `chapter_6.tex` (Obstacle): point to
       `\ref{chp:hardware}` where they mention the photodiode board.
-- [ ] `chapter_5.tex` (Multi-Beacon): its "Teensy-based sensing platform" should back-ref
-      `\ref{chp:hardware}` and be distinguished from the retired Teensy 4.1 prototype.
 
 ---
 

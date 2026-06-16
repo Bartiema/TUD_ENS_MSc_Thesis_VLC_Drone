@@ -3,24 +3,66 @@
 
 \section{Experimental Setup}
 
-The multi-beacon capability was first tested in a simple static setup with two modulated light sources using the Teensy-based sensing platform, before being demonstrated in flight on the CrazyFlie~2.1 (Figure~\ref{fig:teensy-setup}).
+We validate multi-beacon navigation in two stages, each on a different platform. We first ask, on a static bench, whether the sensing can tell two beacons apart by their modulation frequency at all, since the whole multi-beacon scheme of Chapter~\ref{chp:algorithm} rests on this separation. We then put the full controller to work in flight, sending the drone to several beacons in turn. Splitting the question this way lets us confirm the sensing in isolation, where the drone's own noise cannot confuse the result, before asking the complete system to act on it.
 
-\begin{figure}[t]
+The bench study uses the original Teensy~4.1 prototype of Chapter~\ref{chp:hardware}, not the flight board. We use the prototype here precisely because it is a bench instrument rather than a flying one: it carries its own processor and is free of the size, weight, and power limits the flight board must respect, so it can sample faster and log freely over a long session. Its sixteen photodiodes sample at 1600\,Hz, well above the 500\,Hz the drone uses, which places the Nyquist limit at 800\,Hz and leaves the beacon frequencies far below it where their spectra are clean. Figure~\ref{fig:teensy-setup} shows the setup: two lamps modulated at 150 and 200\,Hz stand at opposite ends of the test area, and we move the prototype across a regular grid of measurement positions, spaced 0.2\,m apart over an area of about one by one and a half metres, recording the signal at each. The room was dark throughout, so the only light other than the two beacons came from the computer monitors at the back of the bench, which ran at full brightness about a metre away and flicker at 144\,Hz, an interferer we return to below.
+
+\begin{figure}[ht]
     \centering
-    \missingfigure[figwidth=0.6\textwidth]{Static two-light Teensy setup used to test frequency separation and switching}
-    \caption{Static two-light setup on the Teensy sensing platform.}
+    \includegraphics[width=0.6\textwidth]{figures/teensy_test_setup.jpg}
+    \caption{Static two-light bench setup on the original Teensy~4.1 prototype. Two lamps, marked by the blue and green arrows and modulated at 150 and 200\,Hz, stand at opposite ends of the area, with the photodiode ring moved across it to map the signal. The room was otherwise dark.}
     \label{fig:teensy-setup}
 \end{figure}
 
-\section{Experiment: Frequency Separation and Switching}
+The flights use the CrazyFlie~2.1 carrying the redesigned photodiode board of Chapter~\ref{chp:hardware} and running the full fused controller and state machine of Chapter~\ref{chp:algorithm}. Two beacons, modulated at 150 and 170\,Hz, are placed in an open room, and the drone takes off from a fixed origin and is given a mission that visits them in turn. Figure~\ref{fig:flight-setup} shows the arrangement, as a photograph of the room alongside a top-down sketch of its geometry: the two lamps stand about three metres ahead of the take-off point, one roughly straight ahead and the other off to the left, so that reaching them in sequence requires the drone to turn substantially between targets. We fly two such missions, one of two waypoints and one of three, to test whether the controller steps through its targets in sequence, for a short mission and a longer one.
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[The room, with the two beacons on tripods and the drone already airborne above its take-off point]{\includegraphics[width=0.45\textwidth]{figures/real_life_setup_picture.jpeg}}\hfill
+    \subfigure[Top-down geometry, beacons at 150 and 170\,Hz and the take-off origin]{\includegraphics[width=0.50\textwidth]{figures/real_life_setup_plot_no_obstacle.png}}
+    \caption{Real-world flight setup for the multi-beacon traverses on the CrazyFlie~2.1. The two beacons, modulated at 150 and 170\,Hz, stand about three metres from the take-off origin, one roughly ahead and the other to the left. In the photograph the drone is already airborne, hovering just above its take-off point between the origin and the right-hand beacon. The photograph also still shows the obstacle box, which was not present during these open-space traverses; the same room with the obstacle in place is used only for the experiments of Chapter~\ref{chp:obstacle}.}
+    \label{fig:flight-setup}
+\end{figure}
+
+\section{Separating Beacons by Frequency}
 \label{sec:freq-separation}
 
-\textit{Question: can the sensing pipeline separate two beacons by their modulation frequency and switch between them?}
+The multi-beacon scheme of Chapter~\ref{chp:algorithm} depends on the sensing recovering every beacon from one recording: a single frequency analysis of a photodiode signal holds each beacon's peak at its own frequency, so the beacons can be read in parallel rather than one at a time. We test this on the bench directly. At each position in the swept area we take the recording and read off the SNR at both 150 and 200\,Hz, and Figure~\ref{fig:teensy-dualfreq} maps each beacon's SNR across the area. Switching the controller's attention from one frequency to the other is then only a matter of choosing which peak to read, which is trivial in software, so we do not test it separately.
 
-With two lights present, the static Teensy setup records the SNR of both modulation frequencies at the same time and switches the tracked frequency from one light to the other, confirming that beacons can be distinguished and selected by frequency.
+The result confirms that the two beacons are recovered independently and at the same time. Each lamp was modulated at a known, preset frequency, so the recovered fields are a check against that ground truth rather than the source of it. As the top row of Figure~\ref{fig:teensy-dualfreq} shows, each beacon's SNR field rises to a clear peak at its own lamp, and because the two lamps stand at opposite ends of the area the two fields peak in opposite corners, leaving no doubt that each reading belongs to its own beacon. The same per-sensor magnitudes that form these fields are what the bearing and the gradient of Chapter~\ref{chp:algorithm} are both built from, so the separation we demonstrate here carries through to both of the controller's directional cues, not to the map alone.
 
-\section{Experiment: Sequential Two-Target Traverse}
+The bottom row of Figure~\ref{fig:teensy-dualfreq} shows why the controller navigates on SNR rather than on the raw signal magnitude. The magnitude fields are markedly noisier: they carry the gain differences between the sixteen individual photodiodes and the stray 144\,Hz monitor light, which sits only 6\,Hz from the 150\,Hz beacon, close enough to leak into its part of the spectrum and lift the field away from the lamp. The SNR fields are clean because the SNR divides the peak by the local noise floor, which normalises away both the per-sensor gain spread and a broad interferer like the monitors. This is the same reasoning that motivated the SNR pipeline of Chapter~\ref{chp:realworld}, seen here directly in the data: the 150\,Hz field still carries a faint trace of the monitor interference, but far less than the magnitude, and well within what the controller's SNR gate tolerates. The flight board senses with eight photodiodes at 500\,Hz rather than the prototype's sixteen at 1600\,Hz, but the separation does not depend on either number: it follows from reading each beacon in its own frequency bin, which holds for any sensor count and any sample rate that keeps the beacons below the Nyquist limit, as the flight pipeline of Chapter~\ref{chp:realworld} ensures. The flights bear this out with a different pair, modulating the two beacons at 150 and 170\,Hz rather than 150 and 200\,Hz and separating them just as cleanly, which shows that the exact frequencies do not matter: the only real constraint is that no beacon falls on another's harmonic, exactly the spacing scheme of Chapter~\ref{chp:algorithm}.
 
-\textit{Question: does the fused controller navigate to two beacons in sequence in an unobstructed real-world flight?}
+\begin{figure}[ht]
+    \centering
+    \subfigure[150\,Hz beacon, SNR]{\includegraphics[width=0.47\textwidth]{figures/teensy_multi_freq_tests/map_150_200hz_6x10_20260324_154500_panel_150hz_snr.png}}\hfill
+    \subfigure[200\,Hz beacon, SNR]{\includegraphics[width=0.47\textwidth]{figures/teensy_multi_freq_tests/map_150_200hz_6x10_20260324_154500_panel_200hz_snr.png}}\\
+    \subfigure[150\,Hz beacon, FFT magnitude]{\includegraphics[width=0.47\textwidth]{figures/teensy_multi_freq_tests/map_150_200hz_6x10_20260324_154500_panel_150hz_magnitude.png}}\hfill
+    \subfigure[200\,Hz beacon, FFT magnitude]{\includegraphics[width=0.47\textwidth]{figures/teensy_multi_freq_tests/map_150_200hz_6x10_20260324_154500_panel_200hz_magnitude.png}}
+    \caption{Two beacons recovered simultaneously from a single recording at each cell of a swept area on the original Teensy prototype. The columns are the two beacons, the top row is SNR and the bottom row the raw FFT magnitude, each taken as the maximum across the sixteen sensors. In every panel the filled green star marks the beacon at that panel's frequency, the open star the other beacon, and the dots the measured cells. Each beacon's SNR field rises to a clear peak at its own light, while the magnitude is noisier, carrying per-sensor gain differences and stray 144\,Hz monitor light that the SNR removes by normalising against the local noise floor.}
+    \label{fig:teensy-dualfreq}
+\end{figure}
 
-The drone navigates to each beacon in turn on the CrazyFlie~2.1, validating that the full state machine sequences through multiple targets correctly on the real platform in open-space conditions.
+\section{Sequential Multi-Target Traverse}
+
+With the sensing confirmed, we turn to the complete system and ask whether the drone visits several beacons in turn in real flight. This is the job of the state machine of Chapter~\ref{chp:algorithm}, which runs its searching, aligning, approaching and dwelling phases once per beacon and advances to the next on arrival, which it registers when the overall SNR rises above the arrival threshold, a tunable parameter set per flight as Chapter~\ref{chp:algorithm} notes. We fly the two missions described above on the CrazyFlie, with the two beacons modulated at 150 and 170\,Hz, and record both the drone's path and the controller's internal state throughout. Each mission is a single demonstration flight, so these results show that the traversal works rather than measuring how often it succeeds over many trials, which we leave to future work.
+
+Figure~\ref{fig:traverse-2wp} shows the two-waypoint flight. The path, in the upper panel, reaches the first beacon and then the second, each drawn over the light map the drone built for that beacon as it flew, whose cells hold the SNR measured there; the map is rebuilt from scratch for each target, as Chapter~\ref{chp:algorithm} describes, which is why each panel shows only the cells gathered on the way to its own beacon. The lower panel tracks the controller's state and the active waypoint over time. The state steps through searching, aligning, approaching and dwelling, and the waypoint index advances by one each time the drone arrives and dwells. The overall SNR, the maximum across the eight channels as in Chapter~\ref{chp:realworld}, climbs as the drone closes on each beacon and drops back at each handover, when the drone turns toward a target it is still far from. Together these show that the controller sequences cleanly from one beacon to the next.
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[Flight path to each beacon over the per-beacon light map]{\includegraphics[width=\textwidth]{figures/multi_beacon_lights_flights/2_waypoint_flight_path.png}}\\
+    \subfigure[Controller state, active waypoint, and overall SNR over time]{\includegraphics[width=\textwidth]{figures/multi_beacon_lights_flights/2_waypoint_snr_and_state.png}}
+    \caption{Two-waypoint traverse on the CrazyFlie~2.1, with the two beacons modulated at 150 and 170\,Hz. The drone reaches each beacon in turn over the light map it builds for that beacon, while the state machine steps through its phases and advances the waypoint index on each arrival.}
+    \label{fig:traverse-2wp}
+\end{figure}
+
+The three-waypoint flight in Figure~\ref{fig:traverse-3wp} extends the mission to a longer sequence, and it also exposes a limitation in the current state machine. The drone sequences correctly through the first two beacons, the state machine running its full cycle for each and the waypoint index advancing as before. On the final beacon it approaches and the overall SNR climbs to about 39, comfortably above the arrival threshold, as the SNR trace shows, so the drone does reach the beacon. The state machine, however, fails to latch this arrival: the state trace stays in the approaching phase even as the SNR passes the threshold, which we attribute to a timing error in the transition logic that keeps it from registering the arrival and settling into the dwelling phase. The drone therefore keeps flying instead of stopping, drifts out of the beacon's narrow light cone, and the SNR collapses into a low region from which the beacon is no longer in view. This is a bug in the arrival logic rather than a failure of the navigation approach, since the sequencing itself is sound for the bulk of the mission, and fixing it is left to future work.
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[Flight path to each beacon over the per-beacon light map]{\includegraphics[width=\textwidth]{figures/multi_beacon_lights_flights/3_waypoint_flight_path.png}}\\
+    \subfigure[Controller state, active waypoint, and overall SNR over time]{\includegraphics[width=\textwidth]{figures/multi_beacon_lights_flights/3_waypoint_snr_and_state.png}}
+    \caption{Three-waypoint traverse on the CrazyFlie~2.1, extending the sequencing to a longer mission. The drone steps correctly through the first two beacons. On the third it reaches the beacon and the SNR climbs above the arrival threshold, but a timing error in the state machine prevents it from latching the arrival, so it overshoots, drifts out of the light cone, and the SNR collapses rather than settling into dwelling.}
+    \label{fig:traverse-3wp}
+\end{figure}

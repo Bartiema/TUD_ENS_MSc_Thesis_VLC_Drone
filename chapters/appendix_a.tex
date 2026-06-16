@@ -18,7 +18,7 @@ This appendix lists the parameter values used by the fused navigation controller
         Cell smoothing factor & $\alpha$ & 0.5 \\
         Neighbourhood radius & $d_{\min},d_{\max}$ & 0.05,\,3.0\,m \\
         Weight regulariser & $\varepsilon$ & 0.01 \\
-        Minimum cells for a gradient & --- & 3 \\
+        Minimum cells for a gradient & --- & 7 \\
         Minimum weighted $R^2$ & --- & 0.5 \\
         Minimum gradient magnitude & --- & 0.5 \\
         \multicolumn{3}{l}{\textit{Fusion}} \\
@@ -27,11 +27,11 @@ This appendix lists the parameter values used by the fused navigation controller
         \multicolumn{3}{l}{\textit{State machine and flight}} \\
         Alignment tolerance & --- & 15\textdegree \\
         Re-alignment threshold & --- & 30\textdegree \\
-        Arrival signal strength & --- & 7 \\
+        Arrival signal strength, tuned per flight & --- & 25--32.5 \\
         Search yaw rate & --- & 30\textdegree/s \\
         Cruising forward speed & --- & 0.20\,m/s \\
         Maximum forward speed & --- & 0.30\,m/s \\
-        Flight altitude & --- & 1.0\,m \\
+        Flight altitude & --- & 0.8\,m \\
         Dwell time per beacon & --- & 1.0\,s \\
         \multicolumn{3}{l}{\textit{Signal pipeline (Chapter~\ref{chp:realworld})}} \\
         Hardware low-pass cut-off & $f_c$ & 500\,Hz \\
