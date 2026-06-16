@@ -791,6 +791,75 @@ def plot_stats_overview(df: pd.DataFrame, freq: float,
 
 
 # ---------------------------------------------------------------------------
+# Thesis panels: one clean single-axes figure per (frequency, metric).
+#
+# Each panel is the max-across-sensors field for one beacon frequency, with
+# the WLS gradient arrows overlaid and BOTH lamp positions marked, so a single
+# panel shows that the field rises toward its own light.  Panels are saved
+# separately and composed into a grid with LaTeX subfigure, which keeps the
+# page layout adjustable without re-running the script.
+# ---------------------------------------------------------------------------
+def overlay_all_lamps(ax, lamps, freq):
+    """Mark every lamp; highlight the one matching this panel's frequency."""
+    for lamp in lamps:
+        own = (lamp["freq"] is None) or (abs(lamp["freq"] - freq) < 0.5)
+        ax.plot(lamp["x"], lamp["y"], marker="*", linestyle="none",
+                markersize=20 if own else 13,
+                color="lime" if own else "white",
+                markeredgecolor="black", markeredgewidth=1.0, zorder=11,
+                label=lamp["label"] if own else lamp["label"] + " (other)")
+
+
+def plot_metric_panel(df, freq, metric, lamps, resolution, out_prefix,
+                      show_legend=True, draw_gradient=False):
+    """One self-contained panel: max-across-sensors <metric> field.
+
+    Gradient arrows are off by default: on the raw bench magnitude the
+    per-cell direction estimates are unreliable, so the clean heatmap is
+    left to carry the spatial-separation message on its own.
+    """
+    col, cmap, cbar = {
+        "snr":       ("snr",       "viridis", "SNR (max across sensors)"),
+        "magnitude": ("magnitude", "inferno", "FFT magnitude (max across sensors)"),
+    }[metric]
+    if col not in df.columns:
+        return
+    sub = df[df["frequency_hz"] == freq]
+    grp = sub.groupby(["x", "y"])[col].max().reset_index()
+    pts_x, pts_y, pts_z = grp["x"].values, grp["y"].values, grp[col].values
+
+    fig, ax = plt.subplots(figsize=(5.2, 5.0))
+    plot_heatmap(ax, pts_x, pts_y, pts_z, cmap=cmap, title="",
+                 scatter_label="Measured")
+    sm = ScalarMappable(norm=Normalize(pts_z.min(), pts_z.max()), cmap=cmap)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label=cbar, fraction=0.046, pad=0.04)
+
+    # WLS gradient arrows overlaid directly on the field (off by default)
+    if draw_gradient and len(pts_x) >= MIN_MAP_POINTS:
+        qx, qy, Gx, Gy, GMag, R2, Ok = _compute_gradient_field(
+            pts_x, pts_y, pts_z, resolution)
+        QX, QY = np.meshgrid(qx, qy)
+        mask  = Ok & (GMag > 0)
+        scale = GMag[mask].max() if mask.any() else 1.0
+        ax.quiver(QX[mask], QY[mask],
+                  Gx[mask] / (scale + 1e-9), Gy[mask] / (scale + 1e-9),
+                  color="#00e5ff", scale=12, width=0.005, zorder=9,
+                  label="WLS gradient")
+
+    overlay_all_lamps(ax, lamps, freq)
+    ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+    ax.set_aspect("equal")
+    if show_legend:
+        ax.legend(fontsize=7, loc="upper right", framealpha=0.85)
+
+    out_path = Path(f"{out_prefix}_panel_{freq:.0f}hz_{metric}.png")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Panel saved: '{out_path}'")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -830,7 +899,19 @@ Examples:
     parser.add_argument("--log-scale", action="store_true",
                     help="Also produce log-scale magnitude figures "
                             "(saved with _log suffix alongside the linear versions)")
+    parser.add_argument("--panels", action="store_true",
+                    help="Emit one clean single-axes panel per (frequency, metric) "
+                         "with gradient arrows and both lamps, for LaTeX composition")
+    parser.add_argument("--only-panels", action="store_true",
+                    help="Produce only the thesis panels and skip every other figure")
+    parser.add_argument("--panel-arrows", action="store_true",
+                    help="Overlay WLS gradient arrows on the thesis panels "
+                         "(off by default; unreliable on raw bench magnitude)")
     args = parser.parse_args()
+    if args.only_panels:
+        args.panels = True
+        args.no_per_sensor = args.no_gradient = True
+        args.no_stats = args.no_saturation = True
 
     csv_path = Path(args.csv_file)
     if not csv_path.exists():
@@ -916,6 +997,22 @@ Examples:
         for freq in frequencies:
             print(f"  Plotting {freq:.0f} Hz per-sensor SNR map...")
             plot_per_sensor_snr_maps(df, freq, lamps, out_prefix)
+
+    # -------------------------------------------------------------------
+    # Thesis panels: one clean single-axes panel per (frequency, metric)
+    # -------------------------------------------------------------------
+    if args.panels:
+        print("\n=== Thesis panels (single-axes, for LaTeX composition) ===")
+        metrics = (["snr"] if has_snr else []) + ["magnitude"]
+        first = True
+        for freq in frequencies:
+            for metric in metrics:
+                # Legend on the first panel only; caption explains the rest.
+                plot_metric_panel(df, freq, metric, lamps,
+                                  args.resolution, out_prefix,
+                                  show_legend=first,
+                                  draw_gradient=args.panel_arrows)
+                first = False
 
     # -------------------------------------------------------------------
     # Figure 2: gradient comparison across all variants

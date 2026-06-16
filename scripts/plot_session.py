@@ -271,7 +271,8 @@ def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None) -> 'plt.Figur
     fig, ax_arr = plt.subplots(n, 1, figsize=(14, 3.2 * n), sharex=True,
                                layout='constrained')
     axes = [ax_arr] if n == 1 else list(ax_arr)
-    fig.suptitle(title, fontsize=13, fontweight='bold')
+    if title:
+        fig.suptitle(title, fontsize=13, fontweight='bold')
 
     grad_mask = gradient_accept_mask(df)
 
@@ -589,8 +590,9 @@ def plot_snr_map(df: pd.DataFrame, title: str,
     if 'timestamp_ms' in df.columns:
         t0, t1 = df['timestamp_ms'].iloc[0], df['timestamp_ms'].iloc[-1]
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
-    fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                 fontsize=11, fontweight='bold')
+    if title:
+        fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
+                     fontsize=11, fontweight='bold')
 
     return fig
 
@@ -708,8 +710,9 @@ def plot_survey_map(df: pd.DataFrame, title: str,
     if 'timestamp_ms' in df.columns:
         t0, t1 = df['timestamp_ms'].iloc[0], df['timestamp_ms'].iloc[-1]
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
-    fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                 fontsize=12, fontweight='bold')
+    if title:
+        fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
+                     fontsize=12, fontweight='bold')
     return fig
 
 
