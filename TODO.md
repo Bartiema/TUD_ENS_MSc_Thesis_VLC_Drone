@@ -48,6 +48,13 @@
 - [ ] `chapter_2.tex` (Algorithm) System Overview and `chapter_6.tex` (Obstacle): point to
       `\ref{chp:hardware}` where they mention the photodiode board.
 
+- [ ] **Chapter/section openings (ALL chapters):** several chapters, and some sections,
+      jump straight from the `\chapter`/`\section` title into the next (sub-)section title
+      with no lead-in. Proper style is to first introduce the chapter/section, saying what
+      it will contain, before the first sub-heading. Audit every chapter and add a short
+      orienting paragraph after each title that is immediately followed by a lower-level
+      heading. (Cross-chapter cleanup; can be done later or in a separate session.)
+
 ---
 
 # Background chapter (chapter_1.tex) — still to confirm
