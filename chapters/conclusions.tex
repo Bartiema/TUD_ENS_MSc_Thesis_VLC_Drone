@@ -3,89 +3,28 @@
 
 \section{Summary}
 
-This thesis set out to let a weight-, size-, and power-constrained micro-drone navigate
-to several light beacons and around obstacles using only on-board light sensing. The
-light-based methods we build on, a photodiode bearing and a single-photodiode gradient
-first demonstrated by Harry Huang, were each tested on their own in simulation and could
-steer a drone to a single beacon in open space, but they kept no memory of the light
-field, so neither could route around an obstacle or tell one beacon from another~\cite{huang2026lta}.
+This thesis set out to let a weight-, size-, and power-constrained micro-drone navigate to several light beacons and around obstacles using only on-board light sensing, the challenge framed in Chapter~\ref{chp:introduction}. The light-based methods we build on, a photodiode bearing and a single-photodiode gradient first demonstrated by Harry Huang, were each tested on their own in simulation and could steer a drone to a single beacon in open space, but they kept no memory of the light field, so neither could route around an obstacle or tell one beacon from another~\cite{huang2026lta}.
 
-We addressed this with a fused controller that combines the bearing with a gradient read
-from a light map the drone builds as it flies. The bearing gives an immediate heading
-whenever the beacon is in view, while the map gives the drone a spatial memory of the
-field that stays useful even when the line of sight to the beacon is blocked, so the two
-together react quickly yet keep moving when the beacon is occluded. The gradient is
-estimated from all eight photodiodes rather than one, and separating beacons by their
-modulation frequency lets the drone reach several in turn.
+We addressed this with a fused controller that combines the bearing with a gradient read from a light map the drone builds as it flies, the design developed in Chapter~\ref{chp:algorithm}. The bearing gives an immediate heading whenever the beacon is in view, while the map gives the drone a spatial memory of the field that stays useful even when the line of sight to the beacon is blocked, so the two together react quickly yet keep moving when the beacon is occluded. The gradient is estimated from all eight photodiodes rather than one, and separating beacons by their modulation frequency lets the drone reach several in turn.
 
-The sensing runs on a custom photodiode board small and light enough to fly. It replaces
-an earlier Teensy prototype that was too large and heavy for the drone, fitting eight
-surface-mount photodiodes and their amplifiers into about 6~grams and 42~millimetres, well
-within the CrazyFlie's mass and footprint budget, and carries no processor of its own,
-leaving all computation to the CrazyFlie.
+The sensing runs on a custom photodiode board small and light enough to fly, presented in Chapter~\ref{chp:hardware}. It replaces an earlier Teensy prototype that was too large and heavy for the drone, fitting eight surface-mount photodiodes and their amplifiers into about 6~grams and 42~millimetres, well within the CrazyFlie's mass and footprint budget, and carries no processor of its own, leaving all computation to the CrazyFlie.
 
-In simulation the fused controller solves the task that defeats both methods it builds
-on. Where the bearing-only controller drives into the obstacle and the single-photodiode
-gradient wanders and stalls, the fused controller routes cleanly around the pillar and
-reaches the beacon. We arrived at its gradient estimator by comparing five candidates on
-the same light field and choosing weighted least squares, which returns a usable estimate
-almost wherever the drone is, at a low and constant computational cost the microcontroller
-can afford.
+In simulation the fused controller solves the task that defeats both methods it builds on. Where the bearing-only controller drives into the obstacle and the single-photodiode gradient wanders and stalls, as Chapter~\ref{chp:algorithm} shows, the fused controller routes cleanly around the pillar and reaches the beacon in Chapter~\ref{chp:obstacle}. We arrived at its gradient estimator by comparing five candidates on the same light field and choosing weighted least squares, which returns a usable estimate almost wherever the drone is, at a low and constant computational cost the microcontroller can afford.
 
-On the real drone we recover each beacon from the noisy photodiode signal through a
-frequency analysis and report it as a signal-to-noise ratio. Building the pipeline up one
-stage at a time showed that a median noise floor is what makes it work, more than doubling
-the in-flight SNR from about 15 to about 32, with a hardware anti-alias filter
-complementing it. Ambient light raises the baseline each photodiode reads and so lowers
-the SNR, which a darkened room confirms by holding a higher signal throughout a flight.
+On the real drone we recover each beacon from the noisy photodiode signal through a frequency analysis and report it as a signal-to-noise ratio, the pipeline built in Chapter~\ref{chp:realworld}. Building it up one stage at a time showed that a median noise floor is what makes it work, more than doubling the in-flight SNR from about 15 to about 32, with a hardware anti-alias filter complementing it. Ambient light raises the baseline each photodiode reads and so lowers the SNR, which a darkened room confirms by holding a higher signal throughout a flight.
 
-We confirmed the multi-beacon scheme in two stages. On a static bench two beacons
-modulated at different frequencies are recovered cleanly and at the same time from a
-single recording, each rising to a clear peak at its own lamp, and the SNR field is far
-cleaner than the raw magnitude because it normalises away per-sensor gain and broadband
-interference. In flight the drone then visits two beacons in turn, the state machine
-stepping through its phases for each and advancing on arrival.
+We confirmed the multi-beacon scheme in two stages in Chapter~\ref{chp:multibeacon}. On a static bench two beacons modulated at different frequencies are recovered cleanly and at the same time from a single recording, each rising to a clear peak at its own lamp, and the SNR field is far cleaner than the raw magnitude because it normalises away per-sensor gain and broadband interference. In flight the drone then visits two beacons in turn, the state machine stepping through its phases for each and advancing on arrival.
 
-The obstacle flights carry this onto the real drone. Across several runs the drone reached
-the beacon every time, and the two we examine closely pass near the box: in one the signal
-weakens enough that the controller falls back on the stored map and follows the gradient
-alone through the shadow before the beacon returns, while in the other it keeps a usable
-bearing throughout and steers past on the blended heading. The drone leans on the map only
-as far as it needs to, which is exactly the behaviour the fused design was meant to give.
+The obstacle flights of Chapter~\ref{chp:obstacle} carry this onto the real drone. Across several runs the drone reached the beacon every time, and the two we examine closely pass near the box: in one the signal weakens enough that the controller falls back on the stored map and follows the gradient alone through the shadow before the beacon returns, while in the other it keeps a usable bearing throughout and steers past on the blended heading. The drone leans on the map only as far as it needs to, which is exactly the behaviour the fused design was meant to give.
 
-The approach is not tied to the CrazyFlie. The same board and fused controller have since
-flown on a lighter-than-air blimp, a quite different airframe, where they reach several
-beacons and avoid obstacles just as they do on the quadrotor, which shows the navigation
-depends on the light sensing rather than on the specifics of the platform.
+The approach is not tied to the CrazyFlie. As Chapter~\ref{chp:obstacle} reports, the same board and fused controller have since flown on a lighter-than-air blimp, a quite different airframe, where they reach several beacons and avoid obstacles just as they do on the quadrotor, which shows the navigation depends on the light sensing rather than on the specifics of the platform.
 
-The prior work we extended could reach only a single beacon in open space. The board and
-fused controller developed here give a constrained micro-drone the multi-beacon,
-obstacle-aware navigation it lacked, using only on-board light sensing, and do so across
-two different platforms.
+The prior work we extended could reach only a single beacon in open space. The board and fused controller developed here give a constrained micro-drone the multi-beacon, obstacle-aware navigation it lacked, using only on-board light sensing, and do so across two different platforms.
 
 \section{Limitations}
 
-The operating range of the system is set by the photodiode sensor circuit we built. Far
-from a beacon the SNR between its modulation and the background light eventually becomes
-too low to trust, and very close to it the photodiodes saturate and the recovered signal
-flattens, so the field is clean only between these two bounds. This is a property of the
-current circuit rather than a fundamental limit: more carefully designed hardware, for
-instance higher-order band-pass filters that also reject ambient light, should widen the
-usable range at both ends.
+The operating range of the system is set by the photodiode sensor circuit we built. Far from a beacon the SNR between its modulation and the background light eventually becomes too low to trust, the sensitivity limit seen in Chapter~\ref{chp:realworld}, and very close to it the photodiodes saturate and the recovered signal flattens, the close-range dip noted in Chapter~\ref{chp:obstacle}, so the field is clean only between these two bounds. This is a property of the current circuit rather than a fundamental limit: more carefully designed hardware, for instance higher-order band-pass filters that also reject ambient light, should widen the usable range at both ends.
 
-The navigation is confined to a fixed altitude by our algorithm and hardware. Both cues we
-compute are planar, since the photodiodes sit in a horizontal ring that resolves direction
-only in the horizontal plane and the light map is a 2D grid indexed by the drone's
-horizontal position. Extending this to full three-dimensional navigation is mostly a
-hardware problem. The algorithm itself adapts without much trouble: the map becomes an
-$O(G^3)$ volume rather than an $O(G^2)$ grid for a side of $G$ cells, and the local
-gradient fit simply gains a third coordinate, which raises the computation but not
-prohibitively. The harder part is the sensor, where covering the sphere at the same
-angular spacing as the present ring would raise the photodiode count from $O(N)$ to roughly
-$O(N^2)$, and it is this array, not the added computation, that is the real bottleneck.
+The navigation is confined to a fixed altitude by our algorithm and hardware. Both cues we compute are planar, since the photodiodes sit in the horizontal ring of Chapter~\ref{chp:hardware} that resolves direction only in the horizontal plane and the light map of Chapter~\ref{chp:algorithm} is a 2D grid indexed by the drone's horizontal position. Extending this to full three-dimensional navigation is mostly a hardware problem. The algorithm itself adapts without much trouble: the map becomes an $O(G^3)$ volume rather than an $O(G^2)$ grid for a side of $G$ cells, and the local gradient fit simply gains a third coordinate, which raises the computation but not prohibitively. The harder part is the hardware, where covering the sphere at the same angular spacing as the present ring would raise the photodiode count from $O(N)$ to roughly $O(N^2)$, and it is this array, not the added computation, that is the real bottleneck.
 
-The real-world results are demonstrations rather than a statistical measure of reliability.
-We flew many more missions than the handful shown here, and the controller carried out its
-task on most of them, but we did not run a controlled repeatability study, so these flights
-show that the multi-beacon traversal and the obstacle avoidance work rather than how often
-they succeed.
+The real-world results are demonstrations rather than a statistical measure of reliability. We flew many more missions than the handful shown in Chapters~\ref{chp:multibeacon} and~\ref{chp:obstacle}, and the controller carried out its task on most of them, but we did not run a controlled repeatability study, so these flights show that the multi-beacon traversal and the obstacle avoidance work rather than how often they succeed.
