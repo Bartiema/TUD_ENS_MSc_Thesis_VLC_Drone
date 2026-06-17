@@ -3,22 +3,32 @@
 
 \section{Motivation \& Problem Statement}
 
-Micro-UAVs have expanded into applications such as indoor inspection, environmental monitoring, and inventory management, yet their capabilities remain constrained by short flight endurance and by restricted navigation in GPS-denied environments such as indoor greenhouses, where GPS is not accurate enough to provide the navigation these tasks require.
+Small unmanned aircraft now take on jobs once left to people, from inspecting structures to monitoring the environment and tracking stock in a warehouse~\cite{floreano2015drones}. Many of these jobs are indoors. That is where their navigation runs into trouble. Outdoors a drone can lean on GPS to know where it is. Indoors the signal is blocked or too coarse to navigate by. A drone working inside a warehouse or a greenhouse must find its own way without it~\cite{zafari2019indoor}.
 
-Light-based navigation requires only a simple modulator to turn existing lights into navigation beacons while the drone carries all sensing hardware, unlike other positioning and navigation systems that demand a far larger investment of infrastructure, resources, and time.
+Light offers a cheaper way to navigate indoors, because the spaces a drone works in are already lit~\cite{zhuang2018vlp}. An ordinary light becomes a beacon with no more than a modulator that blinks it faster than the eye can follow. The drone then carries all the sensing it needs on board. Other positioning systems instead demand infrastructure that must be installed and surveyed before the first flight.
 
-Existing VLC-based localisation systems achieve high accuracy but require dense lighting infrastructure, and approaches that work with a single light source are typically limited to simple target tracking and cannot navigate around obstacles.
+Light-based methods face a trade-off between how much they can do and how many lights they require. Visible-light positioning systems reach centimetre-level accuracy~\cite{kuo2014luxapose}. They manage this only by reading a dense grid of modulated ceiling lights, which is a large installation to require. Methods that use a single light source ask far less of the space. They can only steer toward that one light in open space. They cannot tell several lights apart or route around an obstacle.
 
-Recent work by Harry Huang demonstrated light-based navigation for micro-drones using a photodiode bearing algorithm and a single-photodiode gradient method, but this platform can only reach a single beacon in open space and cannot navigate around obstacles~\cite{}.
+Prior work by Harry Huang navigates a micro-drone from a single light~\cite{huang2026lta}. A ring of photodiodes recovers a bearing toward the light. A single photodiode climbs the light gradient by sensing how its reading changes as the drone moves. These methods were validated in simulation, and they need no infrastructure beyond one beacon. They keep no memory of the light field, however. The drone can reach a single beacon in open space but cannot route around an obstacle. It also has no way to tell several beacons apart.
 
-The central challenge this thesis addresses is enabling a weight-, size-, and power-constrained micro-drone to navigate to multiple light beacons and around obstacles using only on-board light sensing.
+This gap is the challenge this thesis takes on. We want a weight-, size-, and power-constrained micro-drone to reach multiple light beacons and route around obstacles, using only on-board light sensing. A micro-drone can spare almost no weight, space, or power. That rules out the heavier sensors and the spare computation other approaches rely on. It leaves only sensing light enough to fly.
 
-This thesis addresses this challenge with a fused controller that combines bearing and gradient information, estimates the gradient from all eight photodiodes rather than one, and builds a spatial light map that supports obstacle-aware, multi-beacon navigation.
+\section{Research Objectives}
+
+This challenge breaks into three questions, which the thesis takes up in turn:
+
+\begin{enumerate}
+    \item \label{rq:feasibility} Can such a drone carry the necessary light sensing on board and recover a reliable beacon signal in flight?
+    \item \label{rq:multibeacon} Can it then navigate to several distinct light beacons in turn?
+    \item \label{rq:obstacle} Can it navigate around an obstacle that blocks its line of sight to a beacon?
+\end{enumerate}
+
+The first asks whether the sensing is feasible within the drone's budget. Chapters~\ref{chp:hardware} and~\ref{chp:realworld} answer it with the photodiode board and the signal pipeline. The second and third ask whether that sensing supports the navigation the prior methods lacked. Chapters~\ref{chp:multibeacon} and~\ref{chp:obstacle} answer them in flight.
 
 \section{Contributions}
 
-This thesis contributes: (1) a miniaturised photodiode PCB that improves on an earlier Teensy-based prototype for weight-, size-, and power-constrained micro-drones; (2) a fused navigation controller that combines bearing and gradient seeking and estimates the gradient from all eight photodiodes, where prior work used a single photodiode; (3) multi-beacon and obstacle-avoiding navigation built on a self-constructed light map; and (4) validation in simulation and on a CrazyFlie~2.1, with prior blimp results showing the approach generalises across platforms.
+To answer these questions, this thesis makes four contributions. Firstly, it presents a miniaturised photodiode board light enough to fly on a micro-drone. This board improves on an earlier Teensy-based prototype. Secondly, it develops a fused controller that combines bearing and gradient seeking. The gradient is estimated from all eight photodiodes, where prior work used only one. Thirdly, it builds multi-beacon and obstacle-avoiding navigation on a light map the drone constructs as it flies. Finally, it validates the approach in simulation and on a CrazyFlie~2.1. The same board and controller are then flown on a lighter-than-air blimp, which shows that the approach generalises across platforms~\cite{huang2026lta}.
 
 \section{Thesis Overview}
 
-The remainder of this thesis is organised as follows: Chapter~\ref{chp:background} reviews related work and the background theory; Chapter~\ref{chp:algorithm} analyses why existing methods fall short and presents the algorithm design; Chapter~\ref{chp:hardware} covers the PCB hardware design; Chapter~\ref{chp:realworld} describes the real-world implementation; Chapter~\ref{chp:multibeacon} presents the multi-beacon experiments; Chapter~\ref{chp:obstacle} presents the obstacle-avoidance experiments; and Chapter~\ref{chp:conclusions} states the conclusions.
+The remainder of this thesis is organised as follows. Chapter~\ref{chp:background} reviews related work and the background theory. Chapter~\ref{chp:algorithm} analyses why existing methods fall short and presents the algorithm design. Chapter~\ref{chp:hardware} covers the PCB hardware design. Chapter~\ref{chp:realworld} describes the real-world implementation. Chapter~\ref{chp:multibeacon} presents the multi-beacon experiments, and Chapter~\ref{chp:obstacle} presents the obstacle-avoidance experiments. Chapter~\ref{chp:conclusions} then draws the conclusions, and Chapter~\ref{chp:futurework} sets out directions for future work.
