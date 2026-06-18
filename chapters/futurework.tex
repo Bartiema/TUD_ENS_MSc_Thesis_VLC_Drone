@@ -1,6 +1,8 @@
 \chapter{Future Work}
 \label{chp:futurework}
 
+This chapter sets out the directions that would build on the thesis. We first consider improvements to the sensing hardware. We then turn to extensions of the navigation itself. We close with a characterisation and robustness study that would turn our demonstrations into a measured account of how well the approach works.
+
 \section{Improving the Sensing Hardware}
 
 The operating range is the most immediate target for a hardware redesign, since it is the main limitation set out in the conclusions of Chapter~\ref{chp:conclusions}. A transimpedance amplifier with adjustable or switched gain would let the front end follow the signal as the drone moves, backing off near a beacon where the photodiodes now saturate and amplifying far from it where the signal is weak, so the clean band widens at both ends. Higher-order band-pass filters tuned to the beacon band would help further, both by passing the modulation more selectively and by rejecting the ambient light that otherwise eats into the sensor's range, the effect measured in Chapter~\ref{chp:realworld}.

@@ -1,6 +1,8 @@
 \chapter{Background \& Related Work}
 \label{chp:background}
 
+This chapter sets the work in context and gathers the background it rests on. We first review how drones navigate indoors without GPS. The review narrows from radio and vision down to the single-beacon light methods we build on. It then locates the gap this thesis closes. We close with the drone platform and the visible-light theory the later chapters draw on.
+
 \section{Related Work}
 
 Most drones that must navigate where GPS is unavailable fall back on radio or vision. The radio methods locate the drone against fixed anchors placed in the environment. Ultra-wideband beacons time how long a pulse takes to travel between an anchor and the drone, placing it to within tens of centimetres, while WiFi fingerprinting matches the signal strengths the drone hears against a map of measurements surveyed beforehand, usually to within a metre or so~\cite{zafari2019indoor}. The accuracy is good, but it is bought with infrastructure. Every space needs its anchors installed or its fingerprints surveyed before the first flight.
@@ -11,7 +13,7 @@ Light offers a cheaper anchor. Visible-light positioning systems reach centimetr
 
 A single beacon is enough to navigate from, if the goal is a direction rather than a position. With only a single beacon the drone can no longer triangulate, so it estimates a heading instead. Prior work by Harry Huang does this on a micro-drone. A ring of photodiodes yields a bearing toward the light, and a single photodiode can be made to climb the light gradient by sensing how its signal changes as the drone moves~\cite{huang2026lta}. This needs no infrastructure beyond one beacon, but it is also where the state of the art stops short. The drone can reach a single beacon in open space, yet it keeps no memory of the light field, so it cannot route around an obstacle, and it has no way to tell several beacons apart.
 
-These limitations are the gap this thesis sets out to close, and we build directly on Harry Huang's bearing and gradient methods to do so~\cite{huang2026lta}. Our contribution is threefold. First, we fuse the bearing and the gradient into a single controller. Second, we estimate the gradient from all eight photodiodes rather than one and use those readings to build a spatial map of the light field. Third, we evaluate which gradient estimation method serves this map best. The map gives the drone the memory it needs to route around obstacles, and separating beacons by their modulation frequencies lets it reach several in turn.
+These limitations are the gap this thesis sets out to close, and we build directly on Harry Huang's bearing and gradient methods to do so~\cite{huang2026lta}. Our algorithmic contribution over these methods is threefold. First, we fuse the bearing and the gradient into a single controller. Second, we estimate the gradient from all eight photodiodes rather than one and use those readings to build a spatial map of the light field. Third, we evaluate which gradient estimation method serves this map best. The map gives the drone the memory it needs to route around obstacles, and separating beacons by their modulation frequencies lets it reach several in turn.
 
 \section{Drone Platform}
 \label{sec:platform}

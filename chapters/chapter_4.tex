@@ -1,6 +1,8 @@
 \chapter{Real-World Implementation}
 \label{chp:realworld}
 
+This chapter turns the board's raw readings into a signal the controller can trust in flight. We describe the pipeline that recovers each beacon from the noisy photodiode voltage and reports it as a signal-to-noise ratio. We then validate what each filtering stage contributes while the drone hovers. Finally we measure how ambient light eats into the signal.
+
 \section{From Intensity to SNR}
 
 In the Webots simulation each photodiode is a built-in light sensor that reports the light landing on it directly from a modelled point light source, as described in Section~\ref{sec:lightsignal}, so the light signal is read straight off the sensor with no further processing. The real platform allows no such direct reading. On the drone each photodiode reports a single voltage in which the target beacon, the ambient room lighting, sunlight through a window, and reflections off the walls and floor are all summed together. The raw intensity is not meaningless, but on its own it is an unreliable navigation cue. It cannot tell us which part of the light comes from the beacon we are trying to reach and which part comes from everything else.

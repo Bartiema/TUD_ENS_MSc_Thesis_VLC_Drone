@@ -1,6 +1,8 @@
 \chapter{Obstacle Experiments}
 \label{chp:obstacle}
 
+This chapter tests the central task of the thesis: reaching a beacon when an obstacle blocks the way. We first survey the real-room light field to confirm the obstacle leaves a navigable shadow. We then show the fused controller solving in simulation the scene that defeated both baselines. Next we fly the obstacle mission on the CrazyFlie. We close by reporting how the same board and controller carry over to a blimp.
+
 \section{Experimental Setup}
 
 The obstacle experiments test the central task this thesis set out to solve: reaching a light beacon when an obstacle stands in the way, where a purely reactive controller would be stuck. We place a physical obstacle into the route between the drone's start position and the beacon, set a little to one side so that it intrudes on the path without sitting squarely in the line of sight. It sits close enough that the drone must steer around it to arrive. We study the task in two stages. We first repeat the simulation of Chapter~\ref{chp:algorithm}, where the bearing-only and gradient-only baselines already failed, and show that the fused controller succeeds in the same scene. We then move to the real room, flying the CrazyFlie~2.1 with the photodiode board of Chapter~\ref{chp:hardware} and the full pipeline of Chapter~\ref{chp:realworld}, to confirm that the behaviour survives the noise of real flight.

@@ -1,6 +1,8 @@
 \chapter{PCB Hardware Design}
 \label{chp:hardware}
 
+This chapter presents the photodiode board that carries the sensing onto the drone. We begin with the earlier Teensy-based prototype and why it was too heavy to fly. We then set out the requirements the new board had to meet and the circuit and layout that meet them. We end with the assembled board and a first check that it senses light on every channel.
+
 \section{The Original Prototype}
 
 Meeting the size, weight, and power limits of a micro-drone calls for hardware built for that platform, and the first attempt did not yet meet them. We first realised the bearing and gradient algorithms on an earlier prototype built around a Teensy~4.1 microcontroller. It read the photodiodes correctly, but was far too large, heavy, and power-hungry to fly on a micro-drone, and carried far more computation than the algorithms need. The prototype was made of three separate parts: the Teensy that ran the algorithms, a circular carrier board that distributed power and provided sixteen connectors, and sixteen small boards that each held one photodiode and plugged into the carrier. It served its purpose as a proof of concept, showing that a ring of photodiodes can recover a bearing toward the light, but it was never meant to fly.

@@ -1,6 +1,8 @@
 \chapter{Multi-Beacon Experiments}
 \label{chp:multibeacon}
 
+This chapter tests whether the drone can reach several light beacons in turn. We first confirm on a static bench that the sensing tells two beacons apart by their modulation frequency. We then fly the full controller on the CrazyFlie through missions that visit the beacons one after another. We examine where the sequencing holds and where it breaks.
+
 \section{Experimental Setup}
 
 We validate multi-beacon navigation in two stages, each on a different platform. We first ask, on a static bench, whether the sensing can tell two beacons apart by their modulation frequency at all, since the whole multi-beacon scheme of Chapter~\ref{chp:algorithm} rests on this separation. We then put the full controller to work in flight, sending the drone to several beacons in turn. Splitting the question this way lets us confirm the sensing in isolation, where the drone's own noise cannot confuse the result, before asking the complete system to act on it.

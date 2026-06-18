@@ -1,6 +1,8 @@
 \chapter{Problem \& Algorithm Design}
 \label{chp:algorithm}
 
+This chapter develops the navigation method at the core of this thesis. We begin by showing in simulation why the bearing and single-photodiode gradient we build on each fall short of the task. We then design a fused controller that overcomes their limits. The chapter describes how it forms a bearing and builds a light map it reads a gradient from. It then covers how the controller chooses a gradient estimator and sequences a mission through a state machine. We close with the heading and speed it finally commands.
+
 \section{Why Existing Methods Fall Short}
 
 The two methods this work builds on each steer toward a single light, but neither is enough for the navigation we are after. The bearing points straight at the source and works well in open space, yet it has no memory of where the light is: the moment an obstacle blocks the line of sight, the drone is left without a heading and cannot find its way around. Following the light gradient with a single photodiode, as in prior work~\cite{huang2026lta}, fares no better, since one sensor must infer the gradient from how its signal changes as the drone moves, which is slow and easily confused by noise.
@@ -36,7 +38,7 @@ These shortcomings set the agenda for the rest of this chapter: we develop a con
 
 \section{System Overview}
 
-To guide the drone toward a light beacon, we combine two inputs, both obtained from the same photodiode array. The first is a bearing angle that points straight at the source, which gives the controller an immediate heading whenever the beacon is in view. The second is a gradient direction, read from a map of the light field that the drone builds as it flies; this map records where the light is stronger, so it stays useful even when the drone can no longer see the beacon directly.
+To guide the drone toward a light beacon, we combine two inputs. Both come from the same photodiode array, whose board we present in Chapter~\ref{chp:hardware}. The first is a bearing angle that points straight at the source, which gives the controller an immediate heading whenever the beacon is in view. The second is a gradient direction, read from a map of the light field that the drone builds as it flies; this map records where the light is stronger, so it stays useful even when the drone can no longer see the beacon directly.
 
 Neither input is enough on its own. As the previous section showed, the bearing is fast but has no memory, while the gradient is robust but only becomes available once the drone has built up a usable map. By combining them we get the best of both: the controller reacts quickly while the beacon is visible, yet keeps moving through a brief loss of signal by leaning on the map it has already built.
 

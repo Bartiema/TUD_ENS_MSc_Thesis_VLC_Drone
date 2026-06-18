@@ -95,9 +95,11 @@ Harry Huang & Delft University of Technology \\
 % prof.\,dr.\,Koen Langendoen (chairman) & Delft University of Technology \\ 
 % dr.\,Przemys{\l}aw Pawe{\l}czak & Delft University of Technology \\ 
 
-\newcommand{\reportAbstract}{WRITE YOUR ABSTRACT HERE}
+\newcommand{\reportAbstract}{Small drones increasingly work indoors, where GPS is unavailable and the heavier sensors used for indoor positioning exceed a micro-drone's weight, size, and power budget. Light offers a cheaper cue, since the spaces a drone works in are already lit. Prior work by Harry Huang navigates a micro-drone toward a single light beacon from a ring of photodiodes. That work was demonstrated only in simulation, and it keeps no memory of the light field, so it cannot tell several beacons apart or route around an obstacle that blocks its view.
 
-\newcommand{\reportKeywords}{LIST YOUR KEYWORDS HERE}
+This thesis gives a constrained micro-drone the navigation those methods lacked, using only on-board light sensing. We design a fused controller that combines a photodiode bearing with a gradient read from a light map the drone builds as it flies, estimating the gradient from all eight photodiodes rather than one. The sensing runs on a custom photodiode board light enough to fly on a CrazyFlie~2.1, about 6~grams across 42~millimetres, which recovers each beacon from the noisy signal through a frequency analysis. We validate the approach in a Webots simulation and in real flight: the drone reaches several modulated beacons in turn and routes around an obstacle by following its stored map through the shadow. Harry Huang has since flown the same board and controller on his lighter-than-air blimp, which shows the approach generalises across platforms.}
+
+\newcommand{\reportKeywords}{visible light communication; light-seeking navigation; GPS-denied indoor navigation; micro-drone; multi-target navigation; obstacle avoidance; bearing angle estimation; gradient-based source seeking; photodiode array}
 
 % Did the thesis lead to a paper? 
 % e.g. The work presented in this thesis has lead to a paper which has been submitted to a conference for publication, pending peer-review
@@ -144,12 +146,6 @@ Harry Huang & Delft University of Technology \\
 
 % Empty page: page iv
 \cleardoublepage
-
-% (Optional) Include quotation: page v (uncomment if needed)
-% \input{chapters/quotation}
-
-% Empty page: page vi
-% \cleardoublepage
 
 % Create preface: page v
 \input{chapters/preface}
