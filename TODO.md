@@ -24,12 +24,11 @@
 
 # Blimp generalisation figure (Ch. 7 §Generalisation to a Blimp Platform)
 
-- [ ] Add a blimp multi-target traverse figure (flight-path map + state/SNR), plus
-      caption and prose in `chapter_6.tex`, from
-      `data/harry_blimp_data/navigate_session_perfect_multi_targets_last_one.csv`.
-      DATA-QUALITY SNAG: the run reaches WP0/WP1 cleanly but jumps to COMPLETE at
-      ~13.5 s as WP2 begins, leaving the WP2 map panel nearly empty and ~22 s of
-      dead time (SNR=0) after. Decide: trim to 0-14 s, use a single combined map
-      instead of per-waypoint panels, or source a cleaner blimp run from Harry.
-      NOTE: this session's max SNR (~33) does NOT exceed the CrazyFlie (~39), so it
-      does not support the higher-SNR claim.
+- [ ] ON HOLD: a blimp multi-target traverse figure (flight-path map + state/SNR)
+      from `data/harry_blimp_data/navigate_session_perfect_multi_targets_last_one.csv`
+      was drafted and trimmed to the first two waypoints, but the traverse still
+      looked off (WP2 completes instantly with no usable map; ~22 s of SNR=0 dead
+      time), so we are NOT using it for now. Bart to check with Harry and/or source
+      a cleaner blimp run before deciding whether to add it to `chapter_6.tex`
+      §Generalisation. NOTE: this session's max SNR (~33) does NOT exceed the
+      CrazyFlie (~39), so it does not support the higher-SNR claim either.
