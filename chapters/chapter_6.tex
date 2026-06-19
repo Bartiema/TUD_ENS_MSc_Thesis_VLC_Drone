@@ -92,6 +92,38 @@ The second flight reaches the beacon without ever falling back on the map alone.
 
 Our own validation spans the Webots simulation and the CrazyFlie~2.1, but the contribution is not tied to that platform, as our collaboration with Harry Huang shows. Harry developed the lighter-than-air blimp and the Webots simulation this thesis uses, and demonstrated the bearing and single-photodiode gradient methods on it in simulation~\cite{huang2026lta}; those base methods were only ever tested in simulation, never flown on the real blimp. The blimp itself is a closely related micro-drone, held up by a helium balloon and using a different motor layout. We developed the fused controller within his simulation, built the photodiode board of Chapter~\ref{chp:hardware}, and ran the real-world experiments of this thesis on the CrazyFlie. Only then, once that work was complete, did Harry carry the same board and fused controller onto the real blimp, adapting only the low-level control to its motor layout, and validate there that it reaches several modulated beacons in turn and avoids obstacles, as it does on the CrazyFlie~\cite{huang2026lta}. The same board and algorithm therefore work across two quite different airframes, which shows the approach depends on the light sensing rather than on the specifics of the platform.
 
-The blimp flights also show a higher SNR than we obtain on the CrazyFlie. The photodiode board is the same and sits in the same place on the airframe. What differs is that the buoyant platform stays aloft without constantly driving its motors. They run only when it moves, and at far lower power, so they couple much less vibration and electrical interference into the board than the CrazyFlie's do. Chapter~\ref{chp:realworld} identified exactly this motor disturbance as the main cost of flight. A higher SNR would extend the usable sensing range, letting the drone pick out the beacon direction from further away. We return to its cause, and to what it could buy, in the future work of Chapter~\ref{chp:futurework}.
+The blimp flights also show a higher SNR than we obtain on the CrazyFlie. The photodiode board is the same and sits in the same place on both airframes, since the blimp is in essence a CrazyFlie with a different motor layout and a helium balloon on top. What differs is the motors: a buoyant platform stays aloft without constantly driving them, so on the blimp they run only when it moves and at far lower power.
+
+This pointed to the motors as the cause, so we measured their effect directly on the CrazyFlie. We held the board at a fixed pose and recorded the SNR while running an increasing number of its motors, both with the hardware filter unpopulated and with it soldered. Table~\ref{tab:motor-noise} and Figure~\ref{fig:motor-noise} show the result. The SNR falls steadily as more motors spin. With the hardware filter in place it drops from about 61 with all motors off to about 25 at full throttle, which confirms the motors are the dominant disturbance.
+
+A motor couples noise into the board in two ways. It draws current that interferes electrically, and it shakes the board mechanically. To separate the two we repeated the four-motor case with the motors moved onto extension wires, isolating them mechanically while leaving them electrically connected. With the filter in place this recovers about half of the lost SNR, from about 25 back to about 43. Vibration and electrical interference therefore contribute in roughly equal measure once the filter has dealt with the worst of the aliased noise.
+
+The motors are therefore the main reason the CrazyFlie sees less signal than the blimp. Because the blimp drives its motors far less, it escapes most of this cost. This explains the higher SNR and the longer sensing range that come with it. What this could buy, and how a future board might claw back the mechanical half, we take up in Chapter~\ref{chp:futurework}.
+
+\begin{table}[ht]
+    \centering
+    \caption{Overall SNR on the CrazyFlie at a fixed pose while running an increasing number of its motors, with the hardware anti-alias filter left unpopulated and with it soldered. Each cell is the mean $\pm$ standard deviation. The last row repeats the four-motor case with the motors moved onto extension wires, mechanically isolating them from the board.}
+    \label{tab:motor-noise}
+    \begin{tabular}{l c c}
+        \hline
+        Configuration & No HW filter & HW filter \\
+        \hline
+        0 motors                & $26.7 \pm 1.8$  & $60.6 \pm 16.3$ \\
+        1 motor                 & $24.2 \pm 1.8$  & $49.2 \pm 10.9$ \\
+        2 motors                & $23.2 \pm 1.7$  & $46.0 \pm 9.0$  \\
+        3 motors                & $18.0 \pm 2.3$  & $28.7 \pm 3.2$  \\
+        4 motors                & $16.7 \pm 2.2$  & $24.8 \pm 2.6$  \\
+        \hline
+        4 motors, extension wires & $19.3 \pm 1.5$ & $43.1 \pm 7.3$ \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/motor_noise.png}
+    \caption{Overall SNR on the CrazyFlie as the number of running motors increases, with the hardware anti-alias filter unpopulated and soldered. The SNR falls as more motors spin, and the rightmost configuration moves the four motors onto extension wires to isolate their vibration from the board.}
+    \label{fig:motor-noise}
+\end{figure}
 
 Seen this way, the result closes a loop with the motivation of Chapter~\ref{chp:introduction}. The prior work we set out to extend could reach only a single beacon in open space; the board and fused controller developed here now give that same platform the multi-beacon, obstacle-aware navigation it lacked.
