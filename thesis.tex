@@ -58,6 +58,16 @@
 % Placeholder boxes for figures still to be produced (\missingfigure)
 \usepackage{todonotes}
 
+% Highlight a SPECIFIC span of words and attach a note:
+%   \hlnote{words to highlight}{SHORT comment}   -> note in the margin
+%   \hlnotein{words to highlight}{LONG comment}  -> note as an inline banner
+% Use \hlnotein for long comments: margin notes get truncated near the page
+% bottom, inline banners never do.
+\usepackage{soul}
+\sethlcolor{yellow}
+\newcommand{\hlnote}[2]{\hl{#1}\todo{#2}}
+\newcommand{\hlnotein}[2]{\hl{#1}\todo[inline]{#2}}
+
 % TikZ for the controller block diagram and the navigation state machine
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
