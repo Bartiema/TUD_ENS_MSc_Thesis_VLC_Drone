@@ -1,58 +1,62 @@
 \chapter{Background \& Related Work}
 \label{chp:background}
 
-This chapter sets the work in context. We first review how drones navigate indoors without GPS, and locate the gap this thesis closes. We then introduce the drone platform whose limited budget shapes the design. We follow with the visible-light theory the later chapters rely on. We close with the navigation algorithms of Huang et al.~\cite{huang2026lta} that this work extends, and the simulator in which it is developed.
+We first review how drones navigate indoors without GPS, and locate the gap this thesis closes. We then introduce the drone platform whose limited budget shapes the design. We follow with the visible-light theory the later chapters rely on. We close with the navigation algorithms of Huang et al.~\cite{huang2026lta} that this work extends, and the simulator in which it is developed.
 
 \section{Related Work}
 \label{sec:related-work}
 
-Small unmanned aircraft increasingly perform tasks once carried out by people, such as inspecting structures, monitoring the environment, and tracking stock in warehouses~\cite{floreano2015drones}. Many of these tasks take place indoors.\todo{Citation needed: a source or figure for how much drone work is indoors / GPS-denied (Harry's ``X\% of applications'').} Indoors, a drone cannot rely on GPS, which is blocked or too coarse to navigate by~\cite{zafari2019indoor}. It must instead find its heading or position from other signals, either carried on board or already present in the space.
+Small unmanned aircraft increasingly perform tasks once carried out by people, such as inspecting structures, monitoring the environment, and tracking stock in warehouses~\cite{floreano2015drones}. Many of these tasks take place indoors, and the indoor inspection drone market alone is forecast to grow from USD~254~million in 2024 to USD~614~million in 2032~\cite{intelmarket2026}. Indoors, a drone cannot rely on GPS, which is blocked or too coarse to navigate by~\cite{zafari2019indoor}. It must instead find its heading or position from other signals, either carried on board or already present in the space.
 
-Indoor navigation methods differ mainly in the signal they use. We group them into radio, acoustic, and vision based approaches, and judge each by two costs that matter for a small drone: the infrastructure it adds to the space, and the sensing and computation it asks the drone to carry. Table~\ref{tab:methods-comparison} summarises the comparison, and the rest of this section develops it.
+Indoor navigation methods differ in the signal they use, and we compare them by two costs. One cost falls on the drone: the sensing and computation it must carry, which a micro-drone can barely afford. The other falls on whoever deploys the system: the infrastructure that must be put in place before the drone can fly, which decides how easily the method can be adopted. Table~\ref{tab:methods-comparison} sets the main approaches against these two costs, and the rest of this section develops the comparison.
 
 \begin{table}[ht]
     \centering
-    \caption{Indoor navigation approaches, compared by what they demand of the space and of the drone. The single light beacon, the approach this thesis builds on, adds the least to both.}
+    \caption{Indoor navigation approaches, set against two costs: the infrastructure that must be installed in the space, and the sensing and computation the drone must carry. The single light beacon, the approach this thesis builds on, keeps both small.}
     \label{tab:methods-comparison}
-    \begin{tabular}{p{2.7cm} p{2.8cm} p{2.0cm} p{2.7cm} p{1.4cm}}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{p{3.3cm} p{3.8cm} p{3.8cm}}
         \hline
-        Approach & Infrastructure added & Accuracy & On-board sensing/compute & Fits a micro-drone \\
+        Approach & Infrastructure to install & On-board sensing and compute \\
         \hline
-        Ultra-wideband      & Dedicated anchors     & Tens of cm     & Radio transceiver       & Partly \\
-        WiFi fingerprinting & Prior site survey     & $\sim$1\,m     & WiFi radio              & Partly \\
-        Acoustic            & Ultrasonic anchors    & ---            & Microphone              & Partly \\
-        Visual SLAM         & None                  & Varies         & Camera + heavy compute  & No \\
-        Dense VLP           & Modulated light grid  & $\sim$cm       & Photodiode              & No \\
-        Single light beacon & One modulated lamp    & Direction only & Photodiode              & Yes \\
+        Ultra-wideband                  & Dedicated radio anchors        & Radio transceiver \\
+        WiFi fingerprinting             & Prior site survey              & WiFi radio \\
+        Acoustic                        & Ultrasonic anchors             & Microphone \\
+        Visual SLAM                     & None                           & Camera and heavy computation \\
+        Dense visible-light positioning & Grid of modulated luminaires   & Photodiode \\
+        Single light beacon             & One modulated lamp             & Photodiode \\
         \hline
     \end{tabular}
 \end{table}
-\todo{Table~\ref{tab:methods-comparison}: please confirm or supply a number for the acoustic accuracy cell, and any per-row citations you want carried into the cells.}
 
-The radio methods locate the drone against fixed anchors placed in the environment. Ultra-wideband anchors measure how long a pulse takes to travel between an anchor and the drone, which places the drone to within tens of centimetres~\cite{zafari2019indoor}.\todo{Citation needed: a UWB-specific reference for this accuracy claim.} WiFi fingerprinting instead matches the signal strengths the drone hears against a map of measurements surveyed in advance, which is coarser, on the order of a metre~\cite{zafari2019indoor}. WiFi therefore covers a building on hardware it already has, whereas ultra-wideband is more accurate but needs dedicated anchors. Acoustic positioning follows the same anchor-based principle with ultrasonic beacons, trading radio for sound.\todo{Citation needed: an acoustic indoor-positioning reference.} All three share one cost in our setting: they require infrastructure installed or surveyed before the first flight, beyond what the space already contains.
+The radio methods locate the drone against fixed anchors placed in the environment. Ultra-wideband anchors measure how long a pulse takes to travel between an anchor and the drone, which places the drone to within tens of centimetres~\cite{queralta2020uwb}. WiFi fingerprinting instead matches the signal strengths the drone hears against a map of measurements surveyed in advance, which localises it more coarsely, to within about a metre~\cite{zafari2019indoor}. WiFi therefore covers a building on hardware it already has, whereas ultra-wideband is more accurate but needs dedicated anchors. Acoustic positioning follows the same anchor-based principle with ultrasonic beacons, trading radio for sound~\cite{sun2025acoustic, altena2023acoustic}. All three share one cost in our setting: they require infrastructure installed or surveyed before the first flight, beyond what the space already contains.
 
-Vision takes a different route and builds its own reference as it flies. A camera captures a stream of images, and visual simultaneous localisation and mapping, or visual SLAM, tracks features across those images to estimate both the drone's motion and a map of its surroundings, so it needs no anchors at all~\cite{murartal2017orbslam2}. The cost moves onto the drone instead. Visual SLAM needs a capable camera and enough on-board computation to process the images in real time, which a micro-drone with little payload and power cannot provide.
+Vision dispenses with anchors by having the drone build its own reference as it flies. A camera captures a stream of images. Visual simultaneous localisation and mapping, or visual SLAM, tracks features across those images, and from how they move it estimates both the drone's path and a map of its surroundings~\cite{murartal2017orbslam2}. This needs no infrastructure in the space. The cost falls on the drone instead: visual SLAM needs a capable camera and enough on-board computation to process the images in real time, which a micro-drone with little payload and a tight power budget cannot provide.
 
-These approaches leave a gap for a small drone. Radio and dense visible-light positioning demand infrastructure added to every space, whereas vision demands a camera and computation the drone cannot carry. Light closes both gaps at once. The spaces a drone works in are already lit, so an ordinary lamp becomes a navigation beacon once it is modulated, and nothing is added to the room but the modulation itself~\cite{pathak2015vlc}. The drone then carries only a light sensor, and reading that sensor is light enough for its onboard processor.
+These approaches each fail a small drone in one of two ways. Radio, acoustic, and dense visible-light positioning add infrastructure to every space, while vision adds a camera and computation the drone cannot carry. The gap is a method that needs neither, and light fills it. The spaces a drone works in are already lit, so an ordinary lamp can become a navigation beacon once it is modulated, and nothing is added to the room but the modulation itself~\cite{pathak2015vlc}. The drone then carries only a light sensor, and reading that sensor is well within its onboard processor's budget.
 
-Visible-light positioning takes the accurate end of this idea. It triangulates a photodiode-equipped receiver from several modulated ceiling luminaires, each identified by its own modulation, and reaches centimetre-level accuracy indoors~\cite{kuo2014luxapose, zhuang2018vlp}. Triangulation needs at least three sources in view at once, so the method assumes a dense, fixed grid of known lights. That grid is costly to provide. The luminaires must be installed where their light overlaps and surveyed to precise known positions, and many spaces cannot arrange their lighting so regularly, as street or aisle lighting shows. The accuracy is real, but it depends on exactly the dense infrastructure a small drone is meant to avoid.
+Visible-light positioning is the most accurate light-based method. It triangulates a photodiode-equipped receiver from several modulated ceiling luminaires, each identified by its own modulation, and reaches centimetre-level accuracy indoors~\cite{kuo2014luxapose, zhuang2018vlp}. Triangulation needs at least three sources in view at once, so the method assumes a dense, fixed grid of known lights. That grid is costly to provide. The luminaires must be installed where their light overlaps and surveyed to precise known positions, and many spaces cannot arrange their lighting so regularly, as street or aisle lighting shows. The accuracy is real, but it depends on exactly the dense infrastructure we set out to avoid.
 
-A single beacon places a far smaller demand on the space. With only one source a drone cannot triangulate a position, since triangulation needs three. It can, however, recover the direction of the light, and a direction is enough to fly to that light and act there. This is a lighter approach rather than a compromise. It keeps the existing-infrastructure advantage of light, adds only one modulated lamp, and asks nothing of the drone beyond a light sensor. Huang et al.\ demonstrate such single-beacon navigation on a micro-drone, guiding it to a modulated light with no addition to the space beyond that one modulation~\cite{huang2026lta}.
+A single beacon places a far smaller demand on the space. With only one source a drone cannot triangulate a position, since triangulation needs at least three. It can, however, recover the direction of the light, which is enough to fly toward it. This is a deliberately smaller design, not a compromise: it keeps the existing-infrastructure advantage of light, adds only the modulation, and asks nothing of the drone beyond a light sensor. Huang et al.\ demonstrate such single-beacon navigation on a micro-drone~\cite{huang2026lta}.
 
-On their own, the base methods we build on reach a single beacon in open space but go no further. They keep no lasting memory of the light field, so a drone running them cannot route around an obstacle that blocks its view of the beacon, and they do not by themselves visit several beacons in turn. Providing this missing navigation, with a custom sensing board, a fused controller, and a light map the drone builds as it flies, is the subject of this thesis. We describe the base methods in detail in Section~\ref{sec:algorithms}.
+Recovering a direction, rather than a position, from an array of sensors is itself an established idea. In radio, amplitude-comparison direction finders estimate a transmitter's bearing by comparing its strength across several differently pointed antennas~\cite{iqbal2020amplitude}. Single-beacon light navigation applies the same principle, with photodiodes and light in place of antennas and radio.
+
+These single-beacon methods reach one beacon in open space, but no further. Two problems remain. An obstacle between the drone and the beacon blocks the light, and the methods offer no way around it. A mission that must visit several beacons in turn is also beyond them, since they track only one light at a time. This thesis solves both, with a custom sensing board and a controller that builds and follows a map of the light field. We describe the methods it builds on in Section~\ref{sec:algorithms}.
 
 \section{Drone Platform}
 \label{sec:platform}
 
-The real-world experiments in this thesis run on a Bitcraze CrazyFlie~2.1, a quadrotor small and light enough to rest in the palm of a hand~\cite{crazyflie21}. Its weight, size, and power budget are what rule out the heavier methods reviewed above. A capable camera and the companion computer that visual navigation needs, or the fixed anchors and prior survey that radio and dense visible-light positioning need, all exceed what this platform can carry or set up. The budget is therefore the reason the navigation rests on light sensing alone, and it sets the requirements the photodiode board of Chapter~\ref{chp:hardware} must meet.
+The platform for this thesis is the Bitcraze CrazyFlie~2.1, an open-source research quadrotor of about 27~grams that fits in the palm of a hand~\cite{crazyflie21}. We chose it because it is openly programmable and built around an expansion-deck interface, so we can mount a custom sensing board on it and run our own controller in its firmware. It is also widely used in micro-drone research, which makes the results easier to compare and reproduce.
 
-The margins are small. The CrazyFlie~2.1 lifts roughly 15~grams of payload, of which the FlowDeck~V2 optical-flow deck the drone also carries takes about 2~grams, leaving on the order of 13~grams for the sensing board~\cite{crazyflie21, flowdeckv2}. The board must also fit within the drone's frame, a diagonal of at most 44~millimetres, and draw only the small current the drone's battery can spare. There is no room for a sensor or processor the navigation does not strictly need.
+What defines the platform for our purposes is how little it can carry. The CrazyFlie can in fact localise itself accurately with the Lighthouse positioning deck, which tracks infrared base stations placed around the room~\cite{lighthousedeck}. That option, like the radio and dense visible-light methods of Section~\ref{sec:related-work}, depends on infrastructure installed and calibrated before the first flight. Our aim is navigation that adds nothing to the space, so we set such methods aside and rest on light sensing alone.
 
-The CrazyFlie also reports an onboard estimate of its own position and heading, on which the light map of Chapter~\ref{chp:algorithm} is built.
+The mass budget that results is small. The CrazyFlie~2.1 lifts roughly 15~grams of payload, of which the FlowDeck~V2 deck it also carries takes about 2~grams, leaving on the order of 13~grams for the sensing hardware this thesis adds~\cite{crazyflie21, flowdeckv2}. That hardware must also fit within the drone's 44~millimetre frame and draw only the current its small battery can spare. These limits set the requirements the photodiode board of Chapter~\ref{chp:hardware} is designed to meet.
+
+The FlowDeck also gives the drone an estimate of its own position and heading, tracking the floor below it with an optical-flow camera and a height sensor~\cite{flowdeckv2}. The later chapters build the light map on this estimate.
 
 \section{Visible Light Communication \& Sensing}
 
-Visible light communication modulates a light faster than the eye can follow~\cite{pathak2015vlc}. A person sees an ordinary, steady light, but a photodiode sampling it quickly enough reads the modulation as a signal. The same lamp therefore serves at once as illumination and as a beacon the drone can recognise. In this work each beacon is a light switched on and off at a fixed frequency, which is enough to tell it apart from steady background light and from beacons at other frequencies.
+Visible light communication modulates a light faster than the eye can see~\cite{pathak2015vlc}. A person sees an ordinary, steady light, but a photodiode sampling it quickly enough reads the modulation as a signal. In this work each beacon is a light switched on and off at a fixed frequency, which is enough to tell it apart from steady background light and from beacons at other frequencies.
 
 How strongly a beacon appears at the drone depends on more than distance. Two angles also matter: the angle at which the light leaves the source, and the angle at which it meets the photodiode. Each contributes a cosine factor, and the intensity falls with the square of the distance, a relationship known as the Lambertian model~\cite{komine2004vlc}. Figure~\ref{fig:lambertian} shows the geometry. Writing $\alpha$ for the angle off the source's axis, $\beta$ for the angle of incidence at the sensor, and $d$ for the distance, the received intensity is proportional to $\cos^{m}\!\alpha \, \cos\beta / d^{2}$, where the order $m$ describes how narrowly the source beams its light.
 
@@ -78,7 +82,7 @@ How strongly a beacon appears at the drone depends on more than distance. Two an
     \label{fig:lambertian}
 \end{figure}
 
-This dependence on angle as well as distance makes a single intensity reading ambiguous. A strong reading can mean a nearby source seen from the side or a distant source seen head-on, and one photodiode cannot tell the two apart, as Figure~\ref{fig:ambiguity} illustrates. This ambiguity is the reason one light cannot fix an absolute position, and the reason positioning systems combine many overlapping sources. We avoid it by treating the light as a direction to follow rather than a position to solve for.
+This dependence on angle as well as distance makes a single intensity reading ambiguous. A strong reading can mean a nearby source seen from the side or a distant source seen head-on, and one photodiode cannot tell the two apart, as Figure~\ref{fig:ambiguity} illustrates. This ambiguity is the reason one light cannot fix an absolute position, and the reason positioning systems combine many overlapping sources. We avoid this problem by treating the light as a direction to follow rather than a position to solve for.
 
 \begin{figure}[ht]
     \centering
@@ -104,79 +108,82 @@ This dependence on angle as well as distance makes a single intensity reading am
 \subsection{The Light Signal}
 \label{sec:lightsignal}
 
-The drone senses this light with photodiodes. A photodiode produces a small electrical current proportional to the light striking it, and the board converts that current into a number. The navigation reads one number per photodiode, which we call the per-sensor light signal and write $S_n$ for sensor $n$. It measures how strongly that sensor sees the beacon. How $S_n$ is recovered differs between the two settings this thesis uses. On the real drone it is extracted from a noisy voltage, as Chapter~\ref{chp:realworld} describes, and in simulation it is read directly from a modelled sensor, as Section~\ref{sec:simulation} describes. For the algorithms that follow, it is enough that each sensor reports one value for how strongly it sees the beacon.
+The drone senses this light with photodiodes. A photodiode produces a small electrical current proportional to the light striking it, and the board converts that current into a value. The navigation reads one value per photodiode, which we call the per-sensor light signal and write $S_n$ for sensor $n$. It measures how strongly that sensor sees the beacon. How $S_n$ is recovered differs between the two settings this thesis uses. On the real drone it is extracted from a noisy voltage, as Chapter~\ref{chp:realworld} describes, and in simulation it is read directly from a modelled sensor, as Section~\ref{sec:simulation} describes. For the algorithms that follow, it is enough that each sensor reports one value for how strongly it sees the beacon.
 
 \section{Algorithms from Huang et al.}
 \label{sec:algorithms}
 
-The navigation in this thesis builds on the light-based methods of Huang et al.~\cite{huang2026lta}. They propose three algorithms for guiding a drone with a single light, which trade sensing hardware against how directly the drone reaches the source. We describe the two this thesis builds on, the bearing and the gradient, in detail, and the third, an extremum-seeking method, only to set it aside. Table~\ref{tab:algorithms-comparison} sets all three side by side.
+This thesis builds on the single-beacon algorithms of Huang et al.~\cite{huang2026lta}. They propose three. We build on two of them, the bearing and the dither-free gradient, and describe both in detail below. The third, an extremum-seeking method, we describe only to set it aside. Table~\ref{tab:algorithms-comparison} compares all three.
 
 \subsection{Bearing Angle Estimation}
 \label{sec:bearing}
 
-The first method, which Huang et al.\ call bearing angle guidance, recovers the direction of the light from an array of photodiodes~\cite{huang2026lta}. Each photodiode in the array faces a different, known direction, and responds most strongly to light arriving from where it faces. When a beacon lies to one side, the photodiodes facing it report a stronger signal than those facing away. Comparing the photodiodes against one another therefore reveals the direction of the strongest light.
+The first method, which Huang et al.\ call bearing angle guidance, or BAG, recovers the direction of the light from an array of photodiodes~\cite{huang2026lta}. Each photodiode in the array faces a different, known direction, and responds most strongly to light arriving from where it faces. When a beacon lies to one side, the photodiodes facing it report a stronger signal than those facing away. Comparing the photodiodes against one another therefore reveals the direction of the beacon.
 
-The bearing combines these per-sensor readings into a single direction. Each photodiode contributes a vector pointing the way it faces, weighted by how strongly it sees the beacon, and the vectors are summed. Figure~\ref{fig:bearing-vectorsum} shows this for a ring of eight photodiodes. Using the per-sensor light signal $S_n$ of Section~\ref{sec:lightsignal} and writing $\theta_n$ for the direction sensor $n$ faces, the bearing $\psi_B$ is the angle of the weighted sum,
+The bearing combines these per-sensor readings into a single direction. Each photodiode contributes a vector pointing the way it faces, weighted by how strongly it sees the beacon, and the vectors are summed. Figure~\ref{fig:bearing-vectorsum} shows this for a ring of eight photodiodes. Using the per-sensor light signal $S_n$ and writing $\theta_n$ for the direction sensor $n$ faces, the bearing $\psi_B$ is the angle of the weighted sum,
 \begin{equation}
 \psi_B = \operatorname{atan2}\!\left( \sum_{n} S_n \sin\theta_n,\; \sum_{n} S_n \cos\theta_n \right).
 \label{eq:bearing}
 \end{equation}
-The sensor facing the beacon contributes the most, so the sum points toward the strongest light. Spacing eight photodiodes evenly around the ring covers every direction in the horizontal plane, so whichever way the beacon lies, at least one sensor faces it. The result is a direction in that plane, which suits a drone flying at a roughly fixed height.
+The sensor facing the beacon contributes the most, so the sum points toward the strongest light. Spacing eight photodiodes evenly around the ring covers every direction in the horizontal plane, so whichever way the beacon lies, at least one sensor faces it. The result is a direction in the plane the photodiodes lie in.
 
 \begin{figure}[ht]
     \centering
     \begin{tikzpicture}[>=Latex]
         \foreach \a in {0,45,...,315} {
-            \draw[->, gray!55] (0,0) -- (\a:0.85);
+            \draw[->, gray!55, thin] (0,0) -- (\a:0.8);
         }
-        \draw[->, thick] (0,0) -- (0:0.95);
-        \draw[->, thick] (0,0) -- (45:1.35);
-        \draw[->, thick] (0,0) -- (90:0.7);
-        \draw[->, very thick, blue!55!black] (0,0) -- (35:1.9) node[above right] {$\psi_B$};
-        \fill[orange] (35:2.5) circle (3pt);
-        \node[right] at (35:2.5) {beacon};
+        \draw[->, thick] (0,0) -- (0:0.9);
+        \draw[->, thick] (0,0) -- (45:1.3);
+        \draw[->, thick] (0,0) -- (90:0.65);
+        \draw[->, very thick, red] (0,0) -- (35:1.8) node[midway, above left] {$\psi_B$};
+        \fill[orange] (35:2.4) circle (3pt) node[right=2pt] {beacon};
+        \begin{scope}[shift={(-3.0,-2.6)}]
+            \draw[->, gray!55, thin] (0,0.6) -- (0.6,0.6) node[right, black, font=\footnotesize] {sensor direction};
+            \draw[->, thick] (0,0.2) -- (0.6,0.2) node[right, font=\footnotesize] {reading $S_n$};
+            \draw[->, very thick, red] (0,-0.2) -- (0.6,-0.2) node[right, black, font=\footnotesize] {bearing $\psi_B$};
+        \end{scope}
     \end{tikzpicture}
-    \caption{The bearing as a magnitude-weighted vector sum on a ring of eight photodiodes. Grey arrows are the directions the sensors face, the black arrows are their contributions, longer where the sensor sees the beacon more strongly, and their sum $\psi_B$ points toward the beacon.}
+    \caption{The bearing as a magnitude-weighted vector sum on a ring of eight photodiodes. The grey arrows are the directions the sensors face; the black arrows are their readings, longer where the sensor sees the beacon more strongly; their sum, in red, is the bearing $\psi_B$, which points toward the beacon.}
     \label{fig:bearing-vectorsum}
 \end{figure}
 
-Recovering a direction by comparing an array of sensors is well established in radio. Amplitude-comparison direction finders estimate a transmitter's bearing from its strength across several differently pointed antennas, taking the arctangent of the combined responses much as we do here, with photodiodes and light in place of antennas and radio~\cite{iqbal2020amplitude}.
-
-The bearing's strength is that it is immediate and accurate. It points at the beacon from a single set of readings, with no need to move or explore, which makes it an excellent reactive heading~\cite{huang2026lta}. Its limitation is that it has no memory. The bearing is computed afresh from each new set of readings and keeps no record of the field the drone has passed through. It cannot represent an obstacle between the drone and the beacon, and it cannot recall where the light was once the drone can no longer see it. A drone steering on the bearing alone flies straight at the strongest light, with no way to route around anything in its path.
+BAG is immediate and accurate. From a single set of readings it points at the beacon, with no need to move or explore, which makes it a strong reactive heading~\cite{huang2026lta}. Its weakness is that it has no memory. Each estimate uses only the latest readings, so the drone steers toward whatever light is strongest at that instant, even when that light is a reflection. The readings alone do not record the space the drone has crossed, so the bearing cannot tell that an obstacle stands between the drone and the beacon. Steering on the bearing alone, the drone drives straight at the strongest light and cannot plan a path around an obstruction.
 
 \subsection{Gradient-Based Source Seeking}
 
-Where the bearing is reactive and memoryless, gradient-based source seeking lets the drone use the history of what it has sensed. It treats the light as a field that grows toward the beacon, and moves in the direction the field increases fastest. Following that gradient leads to the peak of the field, which for a light field is the beacon itself. Because the gradient is built from measurements gathered across a region, it can keep guiding the drone when the direct view of the beacon is briefly lost, which the bearing cannot.
+Where the bearing is reactive and memoryless, gradient-based source seeking lets the drone use the history of what it has sensed. It treats the light as a field that grows toward the beacon, and moves in the direction it estimates the field increases fastest. Following that gradient leads to the peak of the field, which for a light field is the beacon itself. Because it is built from measurements gathered across a region, the gradient still gives a direction when the beacon is briefly out of direct view.
 
-The difficulty is measuring the gradient, and Huang et al.\ propose two ways to do it~\cite{huang2026lta}. The first, dither extremum seeking, uses a single photodiode and adds a small oscillation, or dither, to the drone's path. As the drone wiggles, it reads how the light changes and infers the uphill direction. This is the classical extremum-seeking approach to source seeking without knowledge of one's own position~\cite{ariyur2003extremum, zhang2006sourceseeking, cochran2009sourceseeking}. Its drawback is the dither itself. The constant oscillation makes for indirect, inefficient flight, and the probing motion is easily overwhelmed by disturbances. This thesis does not use it.
+The difficulty is measuring the gradient, and Huang et al.\ propose two ways to do it~\cite{huang2026lta}. The first, dither extremum seeking, uses a single photodiode and adds a small oscillation, or dither, to the drone's path. As the drone wiggles, it reads how the light changes and infers the uphill direction. This is the classical extremum-seeking approach to source seeking without knowledge of the drone's own position~\cite{ariyur2003extremum, zhang2006sourceseeking, cochran2009sourceseeking}. Its drawback is the dither itself. The constant oscillation makes for indirect, inefficient flight, and the probing motion is easily overwhelmed by disturbances. This thesis does not use it.
 
-The second, dither-free gradient ascent, removes the oscillation. It still uses a single photodiode, but instead of probing it estimates the gradient from the drone's recent motion. The drone records where it has been and how strong the light was there, then fits a plane to those recent measurements by least squares, and the slope of that plane is the gradient~\cite{huang2026lta}. This avoids the wasteful dither, but it leans on a single sensor and on dead-reckoned position. It is therefore slow, since the drone must keep moving to gather points, and sensitive to drift. This dither-free estimate is the gradient method this thesis builds on. Chapter~\ref{chp:algorithm} shows how estimating the gradient from all eight photodiodes and a map of the field, rather than from one sensor and recent motion, removes these weaknesses.
+The second, dither-free gradient ascent, removes the oscillation. It still uses a single photodiode, but instead of probing it estimates the gradient from the drone's recent motion. The drone records where it has been and how strong the light was there, then fits a plane to those recent measurements by least squares, and the slope of that plane is the gradient~\cite{huang2026lta}. This avoids the wasteful dither, but it depends on a single sensor and on dead-reckoned position. It is therefore slow, since the drone must keep moving to gather points, and sensitive to drift. This dither-free estimate is the gradient method this thesis builds on. Chapter~\ref{chp:algorithm} shows how estimating the gradient from all eight photodiodes and a map of the field, rather than from one sensor and recent motion, removes some of these weaknesses.
 
 \subsection{Comparing the Algorithms}
 
-Table~\ref{tab:algorithms-comparison} sets the three methods side by side. The bearing is fast and accurate but needs the full photodiode array and keeps no memory. The two gradient methods need only one photodiode, but pay for it, extremum seeking with its inefficient dithering and dither-free ascent with its dependence on motion and dead reckoning. This thesis builds on the bearing and the dither-free gradient, and combines them so that the bearing's immediacy and the gradient's memory cover each other's weaknesses, the design developed in Chapter~\ref{chp:algorithm}.
+Table~\ref{tab:algorithms-comparison} sets the three methods side by side, with the path length and travel time Huang et al.\ measured for each on the same task~\cite{huang2026lta}. The bearing reaches the source most directly, in 7.3~metres and 8.4~seconds, at the cost of the full photodiode array. Both single-photodiode methods are markedly slower. Dither-free ascent takes 8.6~metres and 21.4~seconds, and the dithering extremum seeker is the slowest and least direct at 12.2~metres and 25.6~seconds, its oscillation lengthening the path. The bearing and the dither-free gradient are the two this thesis builds on, and Chapter~\ref{chp:algorithm} develops how they are combined.
 
 \begin{table}[ht]
     \centering
-    \caption{The three single-beacon navigation algorithms of Huang et al.~\cite{huang2026lta}. This thesis builds on the bearing and the dither-free gradient.}
+    \caption{The three single-beacon navigation algorithms of Huang et al.~\cite{huang2026lta}, with the path length and travel time each took to reach the source on the same task in their evaluation. This thesis builds on the bearing and the dither-free gradient.}
     \label{tab:algorithms-comparison}
-    \begin{tabular}{p{3.0cm} p{2.0cm} p{4.2cm} p{3.2cm}}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{p{2.4cm} p{2.7cm} p{2.7cm} p{2.7cm}}
         \hline
-        Algorithm & Sensing & Idea & Main weakness \\
+         & Bearing angle guidance & Dither extremum seeking & Dither-free gradient ascent \\
         \hline
-        Bearing angle guidance & Photodiode array & Magnitude-weighted direction to the light & No memory of the field \\
-        Dither extremum seeking & Single photodiode & Dithers the path and reads the gradient from the response & Inefficient oscillating flight \\
-        Dither-free gradient ascent & Single photodiode & Fits the gradient to recent motion, with no dither & Slow; depends on dead reckoning \\
+        Sensing          & Photodiode array       & Single photodiode             & Single photodiode \\
+        Path length (m)  & 7.3                    & 12.2                          & 8.6 \\
+        Travel time (s)  & 8.4                    & 25.6                          & 21.4 \\
+        Main weakness    & No memory of the field & Inefficient oscillating flight & Slow; depends on dead reckoning \\
         \hline
     \end{tabular}
 \end{table}
-\todo{If Huang et al.\ report comparative performance numbers worth citing here (e.g.\ which performed best, accuracy or path-efficiency figures), tell me and I will fold them in.}
 
 \section{Simulation Environment}
 \label{sec:simulation}
 
-Much of this work is developed in simulation before it is flown. Simulation lets us repeat a scenario exactly as often as we need, compare controllers under identical conditions, and let a controller fail without risking the real drone. It is the natural place to study the problem and design the controller. We use it to show where the existing methods fail, to compare gradient estimators on the same light field, and to develop the fused controller before carrying it onto the real drone.
+The controller is developed in simulation before it is flown on real hardware. Simulation runs a scenario repeatedly under identical conditions, and lets a controller fail without risking the drone. This makes it well suited to designing and comparing the navigation controllers of this thesis.
 
-We use the Webots simulator and the environment that Huang et al.\ built for their own work~\cite{huang2026lta}. It models both the flight of their lighter-than-air blimp and the light its sensors receive. The flight dynamics were validated in that work against published aerodynamic data and real flights, so we take the physical behaviour as faithful rather than re-establishing it here.
+We use Webots, an open-source robotics simulator~\cite{webots}, with the model that Huang et al.\ built for their work~\cite{huang2026lta}. The model reproduces the flight of their lighter-than-air blimp and the light its sensors receive. Huang et al.\ validated the flight dynamics against published aerodynamic data and real flights, so we take the physical behaviour as given.
 
-The light sensing in simulation is deliberately idealised. Webots does not ray-trace the modulated light, which would be costly to compute and is not what we set out to study, since we want to evaluate the navigation algorithms rather than the optics. Each photodiode is therefore a Webots light sensor that reports the irradiance reaching it directly from the modelled source. The per-sensor light signal $S_n$ of Section~\ref{sec:lightsignal} is read straight from this sensor, without the modulation, noise, and frequency analysis the real platform needs. The bearing, the gradient, and the map are all built on $S_n$ in either setting, so the navigation is identical in both, and only the real-world experiments of the later chapters exercise the signal recovery.
+The light sensing in the model is deliberately simplified. Webots can render light by ray tracing, but doing so for a fast-modulated source is expensive and unnecessary here, since we study the navigation rather than the optics. Each photodiode is therefore a Webots light sensor that reads the irradiance reaching it directly from the modelled source, and the per-sensor light signal $S_n$ is taken straight from this reading.
