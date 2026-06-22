@@ -149,6 +149,7 @@ The sensor facing the beacon contributes the most, so the sum points toward the 
 BAG is immediate and accurate. From a single set of readings it points at the beacon, with no need to move or explore, which makes it a strong reactive heading~\cite{huang2026lta}. Its weakness is that it has no memory. Each estimate uses only the latest readings, so the drone steers toward whatever light is strongest at that instant, even when that light is a reflection. The readings alone do not record the space the drone has crossed, so the bearing cannot tell that an obstacle stands between the drone and the beacon. Steering on the bearing alone, the drone heads directly toward the strongest light and cannot plan a path around an obstruction.
 
 \subsection{Gradient-Based Source Seeking}
+\label{sec:gradient-based-source-seeking}
 
 Where the bearing is reactive and memoryless, gradient-based source seeking lets the drone use the history of what it has sensed. It treats the light as a field that grows toward the beacon, and moves in the direction it estimates the field increases fastest. Following that gradient leads to the peak of the field, which for a light field is the beacon itself. Because it is built from measurements gathered across a region, the gradient still gives a direction when the beacon is briefly out of direct view.
 
