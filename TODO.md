@@ -1,34 +1,12 @@
 # Thesis TODO
 
-## Notes
-- Raw simulation data is in `data/` (trajectories + precomputed map) if further
-  analysis is needed.
+# Open items 
 
----
+- [ ] **Platform-budget consistency with Ch4 (`sec:platform`):** the `31b7963` rewrite of
+      §Drone Platform drops the explicit FlowDeck ~2 g and 44 mm frame figures and keeps
+      only ~13 g. Ch4 §Design Requirements now derives the full 15 g lift / ~2 g FlowDeck /
+      ~13 g board / 44 mm budget itself, so it stands alone, but it still `\ref`s
+      `sec:platform` and states the same numbers. When revising this section, keep the
+      figures consistent with Ch4 (or update Ch4 to match), and make sure `sec:platform`
+      remains where the platform is introduced so Ch4's reference still resolves. (2026-06-22)
 
-# Open items — confirm with Harry (blimp)
-
-- [ ] **Blimp SNR numbers:** Harry's paper (`2026_Sensys_HarryHuang.pdf`) has NO
-      direct CrazyFlie-vs-blimp SNR comparison; its only SNR figure is an arrival
-      threshold of 50 (target reached within ~20 cm). The higher-SNR claim is kept
-      qualitative for now. ASK HARRY for exact comparative numbers before final.
-
----
-
-# Background chapter (chapter_1.tex) — still to confirm
-
-- [ ] Related-Work / theory-section overlap (Marco flagged overlap risk).
-- [ ] Optional reference swaps: VLC `pathak2015vlc` vs the IEEE 802.15.7 standard;
-      VLP `kuo2014luxapose` (Luxapose) vs Epsilon (Li et al., NSDI 2014).
-
-
-# Blimp generalisation figure (Ch. 7 §Generalisation to a Blimp Platform)
-
-- [ ] ON HOLD: a blimp multi-target traverse figure (flight-path map + state/SNR)
-      from `data/harry_blimp_data/navigate_session_perfect_multi_targets_last_one.csv`
-      was drafted and trimmed to the first two waypoints, but the traverse still
-      looked off (WP2 completes instantly with no usable map; ~22 s of SNR=0 dead
-      time), so we are NOT using it for now. Bart to check with Harry and/or source
-      a cleaner blimp run before deciding whether to add it to `chapter_6.tex`
-      §Generalisation. NOTE: this session's max SNR (~33) does NOT exceed the
-      CrazyFlie (~39), so it does not support the higher-SNR claim either.
