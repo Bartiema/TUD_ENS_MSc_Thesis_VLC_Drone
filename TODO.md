@@ -1,12 +1,19 @@
 # Thesis TODO
 
-# Open items 
+# Open items
 
-- [ ] **Platform-budget consistency with Ch4 (`sec:platform`):** the `31b7963` rewrite of
-      §Drone Platform drops the explicit FlowDeck ~2 g and 44 mm frame figures and keeps
-      only ~13 g. Ch4 §Design Requirements now derives the full 15 g lift / ~2 g FlowDeck /
-      ~13 g board / 44 mm budget itself, so it stands alone, but it still `\ref`s
-      `sec:platform` and states the same numbers. When revising this section, keep the
-      figures consistent with Ch4 (or update Ch4 to match), and make sure `sec:platform`
-      remains where the platform is introduced so Ch4's reference still resolves. (2026-06-22)
+## Ch2 (Background & Related Work) — red item needing your input
+- [ ] **VLP wavelength/frequency band + citation (`chapter_1.tex`, §Visible Light, line ~19):**
+      one deliberate red `\textcolor{red}{...}` placeholder remains. It is *optional*: decide
+      whether to keep the clause defining the spectral band of visible/infrared light at all.
+      If kept, supply the band (e.g. visible ~380–700 nm, plus the near-IR range these systems
+      use) and a citation. If dropped, the sentence already reads cleanly without it. We never
+      invent the number/citation, so this is left for you. (2026-06-23)
 
+## Cross-chapter sweeps surfaced while revising Ch2 (for their own branches)
+- [ ] **P8 naming in Ch4 (`chapter_3.tex`):** "prior work by Harry Huang" appears twice
+      (lines 10, 24) — convert to "Huang et al." on the Ch4 branch. Ch2 is now fully
+      "Huang et al.", so the two chapters are currently inconsistent. (2026-06-23)
+- [ ] **Notation in Ch5 (`chapter_4.tex`):** the per-sensor signal is written `m_n` / `\hat{m}_n`
+      / `\alpha_m` there, while Ch2/Ch3 use `S_n`. Reconcile to `S_n` on the Ch5 branch
+      (note `\alpha_m` is the magnitude-smoothing factor, a distinct symbol — check each use). (2026-06-23)
