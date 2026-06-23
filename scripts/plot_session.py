@@ -271,7 +271,8 @@ def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None) -> 'plt.Figur
     fig, ax_arr = plt.subplots(n, 1, figsize=(14, 3.2 * n), sharex=True,
                                layout='constrained')
     axes = [ax_arr] if n == 1 else list(ax_arr)
-    fig.suptitle(title, fontsize=13, fontweight='bold')
+    if title:
+        fig.suptitle(title, fontsize=13, fontweight='bold')
 
     grad_mask = gradient_accept_mask(df)
 
@@ -589,8 +590,9 @@ def plot_snr_map(df: pd.DataFrame, title: str,
     if 'timestamp_ms' in df.columns:
         t0, t1 = df['timestamp_ms'].iloc[0], df['timestamp_ms'].iloc[-1]
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
-    fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                 fontsize=11, fontweight='bold')
+    if title:
+        fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
+                     fontsize=11, fontweight='bold')
 
     return fig
 
@@ -708,8 +710,9 @@ def plot_survey_map(df: pd.DataFrame, title: str,
     if 'timestamp_ms' in df.columns:
         t0, t1 = df['timestamp_ms'].iloc[0], df['timestamp_ms'].iloc[-1]
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
-    fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                 fontsize=12, fontweight='bold')
+    if title:
+        fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
+                     fontsize=12, fontweight='bold')
     return fig
 
 
@@ -799,6 +802,21 @@ def main():
         help='Comma-separated list of time-series panels to show '
              '(default: all available). Choices: '
              + ', '.join(p['key'] for p in PANELS) + '.')
+    parser.add_argument(
+        '--no-title', dest='no_title', action='store_true',
+        help='Suppress the figure suptitle (the CSV filename header).')
+    parser.add_argument(
+        '--dpi', type=int, default=200, metavar='D',
+        help='DPI for saved PNGs via --out-map/--out-ts (default: 200).')
+    parser.add_argument(
+        '--out-map', type=str, default=None, metavar='PATH',
+        help='Save the SNR/survey map figure as a PNG to PATH (implies no interactive show).')
+    parser.add_argument(
+        '--out-ts', type=str, default=None, metavar='PATH',
+        help='Save the time-series figure as a PNG to PATH (implies no interactive show).')
+    parser.add_argument(
+        '--waypoint', type=int, default=None, metavar='N',
+        help='Restrict the data to a single wpNav.wpIdx value before plotting.')
     parser.set_defaults(show_gradient=True, per_waypoint=False)
     args = parser.parse_args()
 
@@ -815,12 +833,17 @@ def main():
     print(f"Loaded {len(df)} rows from '{csv_path}'")
     print(f"Columns: {[c for c in df.columns if not c.startswith('_')]}")
 
+    if args.waypoint is not None and 'wpNav.wpIdx' in df.columns:
+        df = df[df['wpNav.wpIdx'] == args.waypoint].copy()
+        print(f"Restricted to waypoint {args.waypoint}: {len(df)} rows")
+
     # Determine survey mode: explicit flag > auto-detect from filename
     if args.survey is None:
         is_survey = any(kw in csv_path.stem.lower() for kw in SURVEY_KEYWORDS)
     else:
         is_survey = args.survey
     lights = args.lights or []
+    ttl = None if args.no_title else csv_path.name
 
     panel_keys = None
     if args.panels:
@@ -833,16 +856,17 @@ def main():
             sys.exit(1)
 
     figures = []
+    fig_ts = fig_map = None
 
     # Obstacles: explicit flag overrides auto-parse from filename
     auto_obs  = _parse_obstacles_from_filename(csv_path.stem)
     obstacles = args.obstacles if args.obstacles is not None else auto_obs
 
     if is_survey:
-        fig_ts = plot_timeseries(df, title=csv_path.name, panel_keys=panel_keys)
+        fig_ts = plot_timeseries(df, title=ttl, panel_keys=panel_keys)
         if fig_ts is not None:
             figures.append(fig_ts)
-        fig_map = plot_survey_map(df, title=csv_path.name, bin_m=args.bin,
+        fig_map = plot_survey_map(df, title=ttl, bin_m=args.bin,
                                   lights=lights, sigma=args.smooth_sigma,
                                   obstacles=obstacles)
         if fig_map is not None:
@@ -851,7 +875,7 @@ def main():
         for wp_idx, seg in df.groupby('wpNav.wpIdx', sort=True):
             seg = seg.copy()
             seg['_t'] = seg['_t'] - seg['_t'].iloc[0]   # reset time to 0
-            label = f"{csv_path.name} — Waypoint {int(wp_idx)}"
+            label = None if args.no_title else f"{csv_path.name} — Waypoint {int(wp_idx)}"
             fig_ts = plot_timeseries(seg, title=label, panel_keys=panel_keys)
             if fig_ts is not None:
                 figures.append(fig_ts)
@@ -862,10 +886,10 @@ def main():
             if fig_map is not None:
                 figures.append(fig_map)
     else:
-        fig_ts = plot_timeseries(df, title=csv_path.name, panel_keys=panel_keys)
+        fig_ts = plot_timeseries(df, title=ttl, panel_keys=panel_keys)
         if fig_ts is not None:
             figures.append(fig_ts)
-        fig_map = plot_snr_map(df, title=csv_path.name, bin_m=args.bin,
+        fig_map = plot_snr_map(df, title=ttl, bin_m=args.bin,
                                show_gradient=args.show_gradient,
                                gradient_stride=args.gradient_stride,
                                obstacles=obstacles)
@@ -876,13 +900,23 @@ def main():
         print("Nothing to plot.")
         sys.exit(1)
 
+    saved_named = False
+    if args.out_ts and fig_ts is not None:
+        fig_ts.savefig(args.out_ts, dpi=args.dpi, bbox_inches='tight')
+        print(f"Saved: {args.out_ts}  (dpi {args.dpi})")
+        saved_named = True
+    if args.out_map and fig_map is not None:
+        fig_map.savefig(args.out_map, dpi=args.dpi, bbox_inches='tight')
+        print(f"Saved: {args.out_map}  (dpi {args.dpi})")
+        saved_named = True
+
     if args.save:
         out = csv_path.with_suffix('.pdf')
         with PdfPages(out) as pdf:
             for fig in figures:
                 pdf.savefig(fig, bbox_inches='tight')
         print(f"Saved: {out}  ({len(figures)} page{'s' if len(figures) > 1 else ''})")
-    else:
+    elif not saved_named:
         plt.show()
 
 

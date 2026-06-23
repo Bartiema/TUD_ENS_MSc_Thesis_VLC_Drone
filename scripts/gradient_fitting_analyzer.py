@@ -19,6 +19,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.lines import Line2D
 from scipy.spatial import cKDTree
 from scipy.interpolate import Rbf
 import sys
@@ -53,10 +54,11 @@ AVOID_RADIUS = OBSTACLE_RADIUS + OBSTACLE_MARGIN  # drawn as the safety circle o
 
 # Visualization parameters
 SUBSAMPLE_RATE = 3           # Keep ~1-in-N² points via 2D grid subsampling (scatter in X and Y)
-ARROW_LENGTH = 0.4           # Fixed arrow length in meters (adjust for visibility)
-COLOR_ARROWS_BY_ERROR = True # True: colour valid arrows by angle error (RdYlGn_r + colourbar).
+ARROW_LENGTH = 0.6           # Fixed arrow length in meters (adjust for visibility)
+COLOR_ARROWS_BY_ERROR = False # True: colour valid arrows by angle error (RdYlGn_r + colourbar).
                              # False: draw them in a single flat colour (ARROW_FLAT_COLOR).
-ARROW_FLAT_COLOR = 'steelblue'  # Colour used for valid arrows when COLOR_ARROWS_BY_ERROR is False
+ARROW_FLAT_COLOR = '#064711'  # Colour used for valid arrows when COLOR_ARROWS_BY_ERROR is False
+ARROW_REJECT_COLOR = '#700211'
 
 # =============================================================================
 # GRADIENT ESTIMATION METHODS
@@ -641,9 +643,9 @@ class GradientFittingAnalyzer:
             if reject_mask.any():
                 gx_r, gy_r = _norm_arrows(reject_mask)
                 ax.quiver(rx[reject_mask], ry[reject_mask], gx_r, gy_r,
-                          color='#888888', alpha=0.45,
+                          color=ARROW_REJECT_COLOR, alpha=0.9,
                           scale=1, scale_units='xy', angles='xy',
-                          width=0.003, zorder=4,
+                          width=0.006, zorder=4,
                           label=f'Low R² rejected ({reject_mask.sum()})')
 
             # -- Arrows for valid estimates: coloured by error or a single flat colour --
@@ -655,21 +657,22 @@ class GradientFittingAnalyzer:
                                        ae[valid_mask],
                                        cmap='RdYlGn_r', alpha=0.9,
                                        scale=1, scale_units='xy', angles='xy',
-                                       width=0.004, clim=[0, 90], zorder=5)
+                                       width=0.006, clim=[0, 90], zorder=5)
                 else:
                     ax.quiver(rx[valid_mask], ry[valid_mask], gx_v, gy_v,
                               color=ARROW_FLAT_COLOR, alpha=0.9,
                               scale=1, scale_units='xy', angles='xy',
-                              width=0.004, zorder=5,
+                              width=0.006, zorder=5,
                               label=f'Valid estimate ({valid_mask.sum()})')
             
             ax.set_xlabel('X Position (m)')
             ax.set_ylabel('Y Position (m)')
-            ax.set_title(f'{method.name} - {method.description}\n'
-                        f'Success: {result["success_rate"]:.1f}% | '
-                        f'Common-coverage err: {result["common_mean_error"]:.1f}° | '
-                        f'Own-coverage err: {result["mean_angle_error"]:.1f}°',
-                        fontweight='bold', fontsize=9)
+            ax.set_title(
+                            f'{method.name}\n'
+                            f'Success rate: {result["success_rate"]:.1f}%',
+                            fontweight='bold',
+                            fontsize=10
+                        )
             ax.set_aspect('equal')
             ax.grid(True, alpha=0.3)
             
@@ -689,8 +692,22 @@ class GradientFittingAnalyzer:
             err_sm.set_array([])
             fig.colorbar(err_sm, cax=fig.add_axes([0.94, 0.10, 0.015, 0.35]),
                          label='Angle error vs straight-to-source (deg); grey = low R²')
+        else:
+            legend_elements = [
+                Line2D([0], [0], color=ARROW_FLAT_COLOR, lw=3,
+                    label='Accepted estimate'),
+                Line2D([0], [0], color=ARROW_REJECT_COLOR, lw=3,
+                    label='Rejected estimate')
+            ]
 
-        plt.savefig('plots/gradient_method_comparison.png', dpi=300, bbox_inches='tight')
+            fig.legend(
+                handles=legend_elements,
+                loc='center',
+                bbox_to_anchor=(0.80, 0.2),  # tweak these
+                fontsize=24
+            )
+
+        plt.savefig('gradient_method_comparison.png', dpi=300, bbox_inches='tight')
         print("[SUCCESS] Saved comparison plots to 'gradient_method_comparison.png'")
     
     def create_performance_plots(self):
@@ -762,7 +779,7 @@ class GradientFittingAnalyzer:
         ax4.grid(True, alpha=0.3)
 
         plt.tight_layout()
-        plt.savefig('plots/gradient_method_performance.png', dpi=300, bbox_inches='tight')
+        plt.savefig('gradient_method_performance.png', dpi=300, bbox_inches='tight')
         print("[SUCCESS] Saved performance analysis to 'gradient_method_performance.png'")
     
     def generate_report(self):
@@ -841,7 +858,7 @@ METHODS TESTED:
         
         print(report)
         
-        with open('plots/gradient_fitting_report.txt', 'w', encoding='utf-8') as f:
+        with open('gradient_fitting_report.txt', 'w', encoding='utf-8') as f:
             f.write(report)
         
         print("[SUCCESS] Saved report to 'gradient_fitting_report.txt'")
