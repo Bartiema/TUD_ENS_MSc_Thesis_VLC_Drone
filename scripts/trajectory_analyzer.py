@@ -273,7 +273,20 @@ def pillar_distance(df):
     return np.hypot(df["x"].values - PILLAR_X, df["y"].values - PILLAR_Y)
 
 
-def plot_2d_trajectory(df, balloon_r=BALLOON_R):
+def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
+                       graze_margin=0.15):
+    # Contact happens when the body centroid comes within (pillar + balloon radius)
+    # of the pillar centre. For the controllers that actually hit the pillar
+    # (bearing-only, gradient-only) trim_at_contact cuts the trajectory at the first
+    # contact, so the figure shows the run up to the collision and not whatever the
+    # controller did after it had already crashed into the obstacle.
+    contact_r = PILLAR_R + balloon_r
+    if trim_at_contact:
+        dist_all = pillar_distance(df)
+        hit = np.where(dist_all <= contact_r)[0]
+        if hit.size:
+            df = df.iloc[:hit[0] + 1].reset_index(drop=True)
+
     fig, ax = plt.subplots(figsize=(12, 10))
 
     # Static obstacle (pillar) -- drawn first so the trajectory sits on top.
@@ -285,7 +298,6 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R):
 
     # Contact distance: the centroid touching this dashed circle means the
     # balloon surface touches the pillar surface (pillar radius + balloon radius).
-    contact_r = PILLAR_R + balloon_r
     clearance = Circle((PILLAR_X, PILLAR_Y), contact_r,
                        facecolor="none", edgecolor=COL_CONTACT, linewidth=1.4,
                        linestyle="--", alpha=0.8, zorder=2,
@@ -310,20 +322,25 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R):
                 solid_capstyle="round", zorder=4,
                 label="Balloon in contact with pillar")
 
-    # Closest-approach point: draw the balloon footprint there so the overlap
-    # with the pillar is visible, and annotate the deflection.
+    # Closest-approach point: only call it out when the balloon actually comes near
+    # the pillar -- a contact, or a near-miss within graze_margin of the contact
+    # distance. When the controller clears the obstacle comfortably (e.g. the fused
+    # run, which stays ~1.4 m clear) drawing the footprint and a "grazes" label would
+    # be misleading, so it is skipped; the dashed contact circle already shows the
+    # keep-out zone.
     i_min = int(np.argmin(dist))
-    cx, cy, ct = df["x"].iloc[i_min], df["y"].iloc[i_min], df["time"].iloc[i_min]
-    balloon = Circle((cx, cy), balloon_r, facecolor=COL_CONTACT, alpha=0.18,
-                     edgecolor=COL_CONTACT, linewidth=1.2, zorder=3,
-                     label="Balloon footprint at closest approach")
-    ax.add_patch(balloon)
-    verb = "contacts" if in_contact.any() else "grazes"
-    ax.annotate(f"balloon {verb} pillar\n(t = {ct:.0f} s, gap {dist[i_min]-PILLAR_R:.2f} m)",
-                xy=(cx, cy), xytext=(cx - 2.6, cy + 1.4),
-                fontsize=9, fontweight="bold", color=COL_CONTACT,
-                arrowprops=dict(arrowstyle="->", color=COL_CONTACT, lw=1.5),
-                zorder=8)
+    if in_contact.any() or dist[i_min] <= contact_r + graze_margin:
+        cx, cy, ct = df["x"].iloc[i_min], df["y"].iloc[i_min], df["time"].iloc[i_min]
+        balloon = Circle((cx, cy), balloon_r, facecolor=COL_CONTACT, alpha=0.18,
+                         edgecolor=COL_CONTACT, linewidth=1.2, zorder=3,
+                         label="Balloon footprint at closest approach")
+        ax.add_patch(balloon)
+        verb = "contacts" if in_contact.any() else "grazes"
+        ax.annotate(f"balloon {verb} pillar\n(t = {ct:.0f} s, gap {dist[i_min]-PILLAR_R:.2f} m)",
+                    xy=(cx, cy), xytext=(cx - 2.6, cy + 1.4),
+                    fontsize=9, fontweight="bold", color=COL_CONTACT,
+                    arrowprops=dict(arrowstyle="->", color=COL_CONTACT, lw=1.5),
+                    zorder=8)
 
     n_arrows = min(15, max(1, len(df) // 20))
     for idx in np.linspace(0, len(df) - 2, n_arrows, dtype=int):
@@ -354,7 +371,7 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R):
     ax.set_xlabel("X Position (m)")
     ax.set_ylabel("Y Position (m)")
     ax.set_title("Blimp 2D Trajectory (Top View)", fontsize=14, fontweight="bold")
-    ax.legend(loc="best", fontsize=9)
+    ax.legend(loc="best", fontsize=12)
     ax.grid(True, alpha=0.3)
     ax.set_aspect("equal")
 
@@ -571,6 +588,10 @@ def main():
                              f"(default: {BALLOON_R}).")
     parser.add_argument("--only-2d", action="store_true",
                         help="Generate only the 2D top-down trajectory figure.")
+    parser.add_argument("--trim-at-contact", action="store_true",
+                        help="Trim the 2D trajectory at the first pillar contact "
+                             "(use for the bearing-only and gradient-only runs that "
+                             "collide with the obstacle).")
     args = parser.parse_args()
 
     if args.outdir:
@@ -591,7 +612,9 @@ def main():
     print(f"\nGenerating plots in: {os.path.abspath(OUTPUT_DIR)}")
 
     print("Generating 2D trajectory plot...")
-    save(plot_2d_trajectory(df, balloon_r=BALLOON_R), "blimp_trajectory_2d.png")
+    save(plot_2d_trajectory(df, balloon_r=BALLOON_R,
+                            trim_at_contact=args.trim_at_contact),
+         "blimp_trajectory_2d.png")
     plt.close("all")
     print("  2D trajectory plot saved")
 

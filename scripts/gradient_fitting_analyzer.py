@@ -9,9 +9,12 @@ produces the most accurate gradient directions and magnitudes.
 Usage:
     python gradient_fitting_analyzer.py [precomputed_map.csv]
     
-Outputs:
+Outputs (written to figures/gradient_analysis/):
     - gradient_method_comparison.png : Visual comparison of all methods
-    - gradient_method_performance.png : Performance metrics and error analysis
+    - gradient_method_performance_success_rate.png : Coverage / success rate
+    - gradient_method_performance_common_error.png : Common-coverage error
+    - gradient_method_performance_own_error.png : Own-coverage error
+    - gradient_method_performance_cdf.png : CDF of direction errors
     - gradient_fitting_report.txt : Detailed comparison report
 """
 
@@ -24,6 +27,13 @@ from scipy.spatial import cKDTree
 from scipy.interpolate import Rbf
 import sys
 from pathlib import Path
+
+# Output locations are resolved relative to this script so the figures always land
+# in the repo's figures/ tree, no matter what directory the script is run from.
+SCRIPT_DIR  = Path(__file__).resolve().parent
+REPO_ROOT   = SCRIPT_DIR.parent
+OUTPUT_DIR  = REPO_ROOT / "figures" / "gradient_analysis"
+DEFAULT_MAP = REPO_ROOT / "data" / "gradient_analysis" / "precomputed_map.csv"
 
 # =============================================================================
 # CONFIGURATION - Adjust these parameters to test different settings
@@ -707,8 +717,10 @@ class GradientFittingAnalyzer:
                 fontsize=24
             )
 
-        plt.savefig('gradient_method_comparison.png', dpi=300, bbox_inches='tight')
-        print("[SUCCESS] Saved comparison plots to 'gradient_method_comparison.png'")
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        out = OUTPUT_DIR / 'gradient_method_comparison.png'
+        plt.savefig(out, dpi=300, bbox_inches='tight')
+        print(f"[SUCCESS] Saved comparison plots to '{out}'")
     
     def create_performance_plots(self):
         """Coverage-first performance plots.
@@ -719,13 +731,23 @@ class GradientFittingAnalyzer:
         method is not flattered by never being scored on the hardest points. The
         own-coverage panel shows the same error on each method's full coverage, exposing
         that the apparent accuracy gap is largely a coverage artifact.
+
+        Each of the four panels is written to its own PNG so the thesis can place them
+        as individual LaTeX subfigures and reference them separately.
         """
         print("\n[INFO] Creating performance analysis plots...")
-
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         names = [m.name for m in self.methods]
 
-        def _bars(ax, vals, color, ylabel, title, fmt, ylim=None):
+        def _save(fig, fname):
+            fig.tight_layout()
+            out = OUTPUT_DIR / fname
+            fig.savefig(out, dpi=300, bbox_inches='tight')
+            plt.close(fig)
+            print(f"[SUCCESS] Saved {out}")
+
+        def _bar_plot(vals, color, ylabel, title, fmt, fname, ylim=None):
+            fig, ax = plt.subplots(figsize=(8, 6))
             bars = ax.bar(range(len(names)), vals, color=color, edgecolor='black')
             ax.set_xticks(range(len(names)))
             ax.set_xticklabels(names, rotation=45, ha='right')
@@ -737,29 +759,30 @@ class GradientFittingAnalyzer:
             for b, v in zip(bars, vals):
                 ax.text(b.get_x() + b.get_width() / 2., b.get_height(),
                         fmt.format(v), ha='center', va='bottom', fontweight='bold')
+            _save(fig, fname)
 
-        # 1. Success rate -- the PRIMARY metric (coverage / availability)
-        _bars(axes[0, 0], [self.results[n]['success_rate'] for n in names],
-              'steelblue', 'Success Rate (%)',
-              'Coverage: Success Rate\n(primary metric -- gradient must be available)',
-              '{:.1f}%', ylim=[0, 100])
+        # (a) Success rate -- the PRIMARY metric (coverage / availability)
+        _bar_plot([self.results[n]['success_rate'] for n in names],
+                  'steelblue', 'Success Rate (%)',
+                  'Coverage: Success Rate\n(primary metric -- gradient must be available)',
+                  '{:.1f}%', 'gradient_method_performance_success_rate.png', ylim=[0, 100])
 
-        # 2. Fair accuracy: error on the common-coverage set (points all methods estimate)
+        # (b) Fair accuracy: error on the common-coverage set (points all methods estimate)
         n_common = self.results[names[0]].get('n_common', 0)
-        _bars(axes[0, 1], [self.results[n]['common_mean_error'] for n in names],
-              'coral', 'Mean Angle Error (deg)',
-              f'Fair Accuracy: Common-Coverage Error\n({n_common} points every method estimates)',
-              '{:.1f}°')
+        _bar_plot([self.results[n]['common_mean_error'] for n in names],
+                  'coral', 'Mean Angle Error (deg)',
+                  f'Fair Accuracy: Common-Coverage Error\n({n_common} points every method estimates)',
+                  '{:.1f}°', 'gradient_method_performance_common_error.png')
 
-        # 3. Same error on each method's OWN coverage -- exposes the coverage artifact:
-        #    high-coverage methods look worse only because they are scored on harder points.
-        _bars(axes[1, 0], [self.results[n]['mean_angle_error'] for n in names],
-              'seagreen', 'Mean Angle Error (deg)',
-              'Own-Coverage Error\n(higher = method also estimates the harder points)',
-              '{:.1f}°')
+        # (c) Same error on each method's OWN coverage -- exposes the coverage artifact:
+        #     high-coverage methods look worse only because they are scored on harder points.
+        _bar_plot([self.results[n]['mean_angle_error'] for n in names],
+                  'seagreen', 'Mean Angle Error (deg)',
+                  'Own-Coverage Error\n(higher = method also estimates the harder points)',
+                  '{:.1f}°', 'gradient_method_performance_own_error.png')
 
-        # 4. CDF of common-coverage errors
-        ax4 = axes[1, 1]
+        # (d) CDF of common-coverage errors
+        fig, ax4 = plt.subplots(figsize=(8, 6))
         common = None
         for method in self.methods:
             s = self.results[method.name]['scored']
@@ -777,10 +800,7 @@ class GradientFittingAnalyzer:
         ax4.set_title('CDF of Common-Coverage Direction Errors', fontweight='bold')
         ax4.legend()
         ax4.grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        plt.savefig('gradient_method_performance.png', dpi=300, bbox_inches='tight')
-        print("[SUCCESS] Saved performance analysis to 'gradient_method_performance.png'")
+        _save(fig, 'gradient_method_performance_cdf.png')
     
     def generate_report(self):
         """Generate text report comparing methods."""
@@ -851,17 +871,22 @@ METHODS TESTED:
         report += f"\n\nFILES GENERATED:\n"
         report += "-" * 70 + "\n"
         report += "- gradient_method_comparison.png : Visual comparison of all methods\n"
-        report += "- gradient_method_performance.png : Performance metrics\n"
+        report += "- gradient_method_performance_success_rate.png : Coverage / success rate\n"
+        report += "- gradient_method_performance_common_error.png : Common-coverage error\n"
+        report += "- gradient_method_performance_own_error.png : Own-coverage error\n"
+        report += "- gradient_method_performance_cdf.png : CDF of direction errors\n"
         report += "- gradient_fitting_report.txt : This report\n"
         
         report += f"\n{'=' * 70}\n"
         
         print(report)
         
-        with open('gradient_fitting_report.txt', 'w', encoding='utf-8') as f:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        report_path = OUTPUT_DIR / 'gradient_fitting_report.txt'
+        with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report)
-        
-        print("[SUCCESS] Saved report to 'gradient_fitting_report.txt'")
+
+        print(f"[SUCCESS] Saved report to '{report_path}'")
     
     def run_full_analysis(self):
         """Run complete analysis pipeline."""
@@ -893,11 +918,12 @@ def main():
     """Main entry point."""
     if len(sys.argv) < 2:
         print("Usage: python gradient_fitting_analyzer.py <precomputed_map.csv>")
-        print("\nSearching for precomputed_map.csv...")
-        
-        candidates = list(Path('.').glob('precomputed_map.csv')) + \
+        print(f"\nNo file given; falling back to the in-repo default:\n  {DEFAULT_MAP}")
+
+        candidates = ([DEFAULT_MAP] if DEFAULT_MAP.exists() else []) + \
+                    list(Path('.').glob('precomputed_map.csv')) + \
                     list(Path('logs').glob('precomputed_map.csv'))
-        
+
         if candidates:
             map_file = str(candidates[0])
             print(f"Found: {map_file}")
