@@ -273,7 +273,8 @@ def pillar_distance(df):
     return np.hypot(df["x"].values - PILLAR_X, df["y"].values - PILLAR_Y)
 
 
-def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False):
+def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
+                       graze_margin=0.15):
     # Contact happens when the body centroid comes within (pillar + balloon radius)
     # of the pillar centre. For the controllers that actually hit the pillar
     # (bearing-only, gradient-only) trim_at_contact cuts the trajectory at the first
@@ -321,20 +322,25 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False):
                 solid_capstyle="round", zorder=4,
                 label="Balloon in contact with pillar")
 
-    # Closest-approach point: draw the balloon footprint there so the overlap
-    # with the pillar is visible, and annotate the deflection.
+    # Closest-approach point: only call it out when the balloon actually comes near
+    # the pillar -- a contact, or a near-miss within graze_margin of the contact
+    # distance. When the controller clears the obstacle comfortably (e.g. the fused
+    # run, which stays ~1.4 m clear) drawing the footprint and a "grazes" label would
+    # be misleading, so it is skipped; the dashed contact circle already shows the
+    # keep-out zone.
     i_min = int(np.argmin(dist))
-    cx, cy, ct = df["x"].iloc[i_min], df["y"].iloc[i_min], df["time"].iloc[i_min]
-    balloon = Circle((cx, cy), balloon_r, facecolor=COL_CONTACT, alpha=0.18,
-                     edgecolor=COL_CONTACT, linewidth=1.2, zorder=3,
-                     label="Balloon footprint at closest approach")
-    ax.add_patch(balloon)
-    verb = "contacts" if in_contact.any() else "grazes"
-    ax.annotate(f"balloon {verb} pillar\n(t = {ct:.0f} s, gap {dist[i_min]-PILLAR_R:.2f} m)",
-                xy=(cx, cy), xytext=(cx - 2.6, cy + 1.4),
-                fontsize=9, fontweight="bold", color=COL_CONTACT,
-                arrowprops=dict(arrowstyle="->", color=COL_CONTACT, lw=1.5),
-                zorder=8)
+    if in_contact.any() or dist[i_min] <= contact_r + graze_margin:
+        cx, cy, ct = df["x"].iloc[i_min], df["y"].iloc[i_min], df["time"].iloc[i_min]
+        balloon = Circle((cx, cy), balloon_r, facecolor=COL_CONTACT, alpha=0.18,
+                         edgecolor=COL_CONTACT, linewidth=1.2, zorder=3,
+                         label="Balloon footprint at closest approach")
+        ax.add_patch(balloon)
+        verb = "contacts" if in_contact.any() else "grazes"
+        ax.annotate(f"balloon {verb} pillar\n(t = {ct:.0f} s, gap {dist[i_min]-PILLAR_R:.2f} m)",
+                    xy=(cx, cy), xytext=(cx - 2.6, cy + 1.4),
+                    fontsize=9, fontweight="bold", color=COL_CONTACT,
+                    arrowprops=dict(arrowstyle="->", color=COL_CONTACT, lw=1.5),
+                    zorder=8)
 
     n_arrows = min(15, max(1, len(df) // 20))
     for idx in np.linspace(0, len(df) - 2, n_arrows, dtype=int):
