@@ -1,23 +1,67 @@
 \chapter{Introduction}
 \label{chp:introduction}
 
-This chapter introduces the problem the thesis addresses and the shape of our answer. We set out why a constrained micro-drone needs on-board optical navigation and what the prior work leaves undone. We then state the research questions and our contributions, then outline how the rest of the thesis is organised.
+This chapter introduces the problem this thesis addresses and outlines how we approach it. We first explain why a weight-, size-, and power-constrained micro-drone needs on-board optical navigation, and what gap the prior work leaves. We then state the research questions and the contributions, and describe how the rest of the thesis is organised.
 
 \section{Motivation \& Problem Statement}
 
-Small unmanned aircraft now take on jobs once left to people. They inspect structures, monitor the environment, and track stock in a warehouse~\cite{floreano2015drones}. Many of these jobs are indoors. That is where their navigation runs into trouble. Outdoors a drone can lean on GPS to know where it is. Indoors the signal is blocked or too coarse to navigate by~\cite{zafari2019indoor}. A drone working inside a warehouse or a greenhouse must find its own way without it.
+Small unmanned aircraft increasingly perform tasks that once required a human operator. They inspect structures, monitor the environment, and track stock in warehouses~\cite{floreano2015drones}. Many of these tasks take place indoors, and the demand is growing. The indoor inspection-drone market alone is projected to expand from USD~254~million in 2024 to USD~614~million by 2032~\cite{intelmarket2026}. Indoors is also where conventional drone navigation becomes difficult. Outdoors a drone uses GPS to determine its position. Indoors the surrounding structure blocks the GPS signal, or weakens it until it is too coarse to navigate by~\cite{zafari2019indoor}. A drone operating inside a warehouse or a greenhouse must therefore establish its position by other means.
 
-Light offers a cheaper way to navigate indoors, because the spaces a drone works in are already lit~\cite{zhuang2018vlp}. An ordinary light becomes a beacon with no more than a modulator that blinks it faster than the eye can follow. The drone then carries all the sensing it needs on board. Other positioning systems instead demand infrastructure that must be installed and surveyed before the first flight.
+Visible light is well suited to this setting, because the spaces a drone operates in are already lit~\cite{zhuang2018vlp}. An ordinary lamp can serve as a navigation beacon. A modulator switches the lamp on and off faster than the human eye can perceive, so the light still appears steady to the people in the room~\cite{pathak2015vlc}. The drone then carries only a small light sensor to detect the beacon, whose mass and power draw are well within a micro-drone's budget. Most other indoor positioning systems instead require infrastructure to be installed and surveyed before the first flight, such as radio anchors or a calibrated grid of ceiling lights.
 
-Light-based methods face a trade-off between how much they can do and how many lights they require. Visible-light positioning systems reach centimetre-level accuracy~\cite{kuo2014luxapose}. They manage this only by reading a dense grid of modulated ceiling lights, which is a large installation to require. Methods that use a single light source ask far less of the space. They can only steer toward that one light in open space. They cannot tell several lights apart or route around an obstacle.
+Light-based navigation involves a trade-off between the information it provides and the lighting infrastructure it requires. Visible-light positioning systems recover a drone's full position to centimetre-level accuracy~\cite{kuo2014luxapose}. They achieve this only by reading a dense grid of modulated ceiling lights, each installed and surveyed to a known location. Such a grid is a substantial requirement to place on every space. A method that uses only a single light source places a far smaller demand on the environment. It cannot recover a full position from one light. It can, however, recover the direction toward that light, which is enough to guide the drone to the beacon in open space. A single-beacon method on its own cannot distinguish one beacon from another. Nor can it route around an obstacle that blocks the light.
 
-Prior work by Harry Huang navigates a micro-drone from a single light~\cite{huang2026lta}. A ring of photodiodes recovers a bearing toward the light. A single photodiode climbs the light gradient by sensing how its reading changes as the drone moves. These methods were demonstrated in simulation, and they need no infrastructure beyond one beacon. They keep no memory of the light field, however. The drone can reach a single beacon in open space but cannot route around an obstacle. It also has no way to tell several beacons apart.
+Huang et al.~\cite{huang2026lta} demonstrate single-beacon navigation of this kind on a micro-drone. They use two separate methods. The first recovers a bearing toward the beacon from a ring of photodiodes, summing the photodiode readings as vectors to obtain a single direction. The second follows the light gradient using one photodiode, inferring the direction in which the light intensity increases from how that reading changes as the drone moves. Both require no infrastructure beyond a single modulated lamp, and both were evaluated only in simulation. Both also reach a single beacon in open space, but two limitations remain. First, each method tracks only one beacon at a time, so neither can visit several beacons in turn. Second, neither builds a lasting map of the light field to rely on when the beacon is no longer directly visible\todo{The gradient method does build a map though???}. The bearing is purely instantaneous, and the single-photodiode gradient infers its direction only from the drone's recent motion. When an obstacle then blocks the beacon, the drone is left without a dependable direction to follow.
 
-This gap is the challenge this thesis takes on. We want a weight-, size-, and power-constrained micro-drone to reach multiple light beacons and route around obstacles using only on-board light sensing. A micro-drone can spare almost no weight, space, or power. That rules out the heavier sensors and the spare computation other approaches rely on. It leaves only sensing that is light enough to fly.
+This thesis sets out to overcome both limitations. The goal is to navigate a weight-, size-, and power-constrained micro-drone to several light beacons in succession, and around an obstacle that blocks its path to a beacon, using only on-board light sensing. Figure~\ref{fig:task-concept} illustrates this task: the drone visits several modulated beacons in turn, while an obstacle blocks its line of sight to one of them. Doing this on a micro-drone is what makes the problem hard. A platform of a few tens of grams has almost no spare mass, volume, or power, so it cannot carry the heavier sensors or the additional computation that larger drones rely on. The drone must therefore navigate using only the small, low-power light sensing it can carry.
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[>=Latex, font=\small]
+        % --- modulated light beacons ---
+        \foreach \pos in {(2.3,3.0),(6.6,1.0),(8.0,3.0)} {
+            \fill[black] \pos circle (2.5pt);
+            \foreach \a in {0,45,...,315} { \draw[thin, gray!70] \pos -- ++(\a:0.28); }
+        }
+        \node[above=5pt] at (2.3,3.0) {beacon $f_1$};
+        \node[below=5pt] at (6.6,1.0) {beacon $f_2$};
+        \node[above=5pt] at (8.0,3.0) {beacon $f_3$};
+
+        % --- obstacle, on the direct line from f_1 to f_2 ---
+        \fill[gray!35] (4.4,0.3) rectangle (5.2,2.0);
+        \draw (4.4,0.3) rectangle (5.2,2.0);
+        \node[below=3pt, align=center] at (4.8,0.3) {obstacle};
+
+        % --- blocked direct line of sight to f_2 ---
+        \draw[dotted, gray] (2.3,3.0) -- (6.6,1.0);
+        \draw[thick] (4.62,1.69) -- (4.98,2.00);
+        \draw[thick] (4.62,2.00) -- (4.98,1.69);
+        \node[align=center, font=\footnotesize] at (3.5,1.0) {direct line\\of sight\\blocked};
+
+        % --- micro-drone at the start, top-down quadrotor ---
+        \begin{scope}[shift={(0.4,1.0)}]
+            \draw[thick] (-0.22,-0.22) -- (0.22,0.22);
+            \draw[thick] (-0.22,0.22) -- (0.22,-0.22);
+            \foreach \c in {(-0.22,-0.22),(0.22,0.22),(-0.22,0.22),(0.22,-0.22)} {
+                \draw[thick, fill=white] \c circle (0.12);
+            }
+        \end{scope}
+        \node[below=4pt] at (0.4,1.0) {micro-drone};
+
+        % --- example mission path, detouring around the obstacle ---
+        \draw[->, dashed, thick]
+            (0.7,1.1) to[out=40,in=200] (2.3,2.7)
+            (2.3,2.7) to[out=10,in=160] (4.8,2.55)
+            (4.8,2.55) to[out=-20,in=110] (6.6,1.3)
+            (6.6,1.3) to[out=55,in=215] (7.8,2.7);
+    \end{tikzpicture}
+    \caption{An illustration of the navigation task this thesis addresses. This is a schematic example, not a recorded flight path or the exact scene used in the experiments. A micro-drone must visit several light beacons in turn, distinguishing them by their modulation frequencies $f_1$, $f_2$, and $f_3$. An obstacle blocks the direct line of sight to beacon $f_2$, so steering toward the light alone is not enough to reach it. The drone must instead detour around the obstacle, which requires it to remember the light field rather than react only to the light it currently senses. The experiments in Chapters~\ref{chp:multibeacon} and~\ref{chp:obstacle} test the multi-beacon and obstacle cases separately.}
+    \label{fig:task-concept}
+\end{figure}
 
 \section{Research Objectives}
 
-This challenge breaks into three questions, which the thesis takes up in turn:
+This gap raises three questions, which this thesis addresses in turn:
 
 \begin{enumerate}
     \item \label{rq:feasibility} Can such a drone carry the necessary light sensing on board and recover a reliable beacon signal in flight?
@@ -25,12 +69,22 @@ This challenge breaks into three questions, which the thesis takes up in turn:
     \item \label{rq:obstacle} Can it navigate around an obstacle that blocks its line of sight to a beacon?
 \end{enumerate}
 
-The first asks whether the sensing is feasible within the drone's budget. Chapters~\ref{chp:hardware} and~\ref{chp:realworld} answer it with the photodiode board and the signal pipeline. The second and third ask whether that sensing supports the navigation the prior methods lacked. Chapters~\ref{chp:multibeacon} and~\ref{chp:obstacle} answer them in flight.
+The first question concerns feasibility: whether a board within the drone's mass budget can recover a reliable beacon signal during flight. The second and third concern capability: whether that sensing can then support the navigation the prior methods lacked, namely visiting several beacons in turn and routing around an occluding obstacle. The chapters\todo{A mention of chapters when we no longer mention the structure of the thesis. Remove/replace this!} that follow build the hardware and the controller that answer these questions, and test the result in simulation and in flight.
 
 \section{Contributions}
 
-To answer these questions, this thesis makes four contributions. Firstly, it presents a small photodiode board light enough to fly on a micro-drone. This board improves on an earlier Teensy-based prototype. Secondly, it develops a fused controller that combines bearing and gradient seeking. The gradient is estimated from all eight photodiodes, where prior work used only one. We choose its estimator by comparing several candidates on the same light field. Thirdly, it builds multi-beacon and obstacle-avoiding navigation on a light map the drone constructs as it flies. Finally, it validates the approach in simulation and on a CrazyFlie~2.1. The same board and controller have since been flown on a lighter-than-air blimp by Harry Huang, which shows that the approach generalises across platforms~\cite{huang2026lta}.
+To answer the research questions laid out in the previous section, this thesis makes four contributions.
+
+First, it presents a custom photodiode sensing board that fits within a micro-drone's payload and size budget. It replaces an earlier Teensy-based prototype, which established the sensing principle but was too large and heavy to fly.
+
+Second, it develops a fused navigation controller that combines the bearing with a gradient. The controller estimates the gradient from a map of the light field, which the drone builds from all eight photodiodes as it flies. The prior method instead estimated the gradient from a single photodiode, fitting a plane to the readings gathered along the drone's recent path, so its estimate depended on the drone's heading. Building the gradient on a map that all eight photodiodes populate removes this dependence, because the map holds a usable value at each location whichever way the drone faces. We choose the fitting method itself by comparing five candidate estimators on the same reference light field.\todo{This paragraph still feels a bit like it goes into to much detail. We should really only state the contributions here no?}
+
+Third, it builds two navigation capabilities on this light map, which serves as the spatial memory the prior methods lacked. The first is multi-beacon traversal: because each beacon is modulated at a distinct frequency, the drone distinguishes the beacons in the map and visits them in turn. The second is obstacle avoidance: because the map records where the light was strong, the drone can route around an obstacle by following the stored field even while the beacon is occluded. A state machine ties these behaviours together, switching between the bearing, the gradient, and a blend of the two as each becomes reliable.
+
+Finally, it validates the complete system in a Webots simulation and in real flight. The drone reaches several beacons in turn, and routes around an obstacle that blocks its line of sight to a beacon.
+
+This thesis builds directly on the work of Huang et al.~\cite{huang2026lta}. That work provides the single-beacon bearing and gradient methods, the Webots simulator, and the lighter-than-air blimp platform. The fused controller, the map-based eight-photodiode gradient, the multi-beacon and obstacle-avoidance navigation, the photodiode board, and the CrazyFlie validation are the contributions of this thesis. In a later collaboration, Huang et al.\ mounted the same photodiode board and controller on their lighter-than-air blimp and reproduced the multi-beacon and obstacle-avoidance results.
 
 \section{Thesis Overview}
 
-The remainder of this thesis is organised as follows. Chapter~\ref{chp:background} reviews related work and the background theory. Chapter~\ref{chp:algorithm} analyses why existing methods fall short and presents the algorithm design. Chapter~\ref{chp:hardware} covers the PCB hardware design. Chapter~\ref{chp:realworld} describes the real-world implementation. Chapter~\ref{chp:multibeacon} presents the multi-beacon experiments, and Chapter~\ref{chp:obstacle} presents the obstacle-avoidance experiments. Chapter~\ref{chp:conclusions} then draws the conclusions, and Chapter~\ref{chp:futurework} sets out directions for future work.
+The remainder of this thesis is organised as follows. Chapter~\ref{chp:background} reviews how drones navigate GPS-denied indoor spaces, motivates the choice of visible light, and introduces the prior algorithms of Huang et al. Chapter~\ref{chp:algorithm} analyses why those methods fall short under multiple beacons and occlusion, and designs the fused controller that overcomes them. Chapter~\ref{chp:hardware} presents the photodiode board and the payload, power, and size budget it must meet. Chapter~\ref{chp:realworld} describes the real-world implementation, including the signal pipeline that recovers each beacon from the noisy measured light. Chapter~\ref{chp:multibeacon} reports the multi-beacon experiments, and Chapter~\ref{chp:obstacle} the obstacle-avoidance experiments, in both simulation and real flight. Chapter~\ref{chp:conclusions} draws the conclusions, and Chapter~\ref{chp:futurework} sets out directions for future work.
