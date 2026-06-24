@@ -93,6 +93,7 @@ The second flight reaches the beacon without ever falling back on the map alone,
 \end{figure}
 
 \section{Generalisation to a Blimp Platform}
+\label{sec:blimp-generalisation}
 
 Our own validation spans the Webots simulation and the CrazyFlie~2.1, but the contribution is not tied to that platform. We show this through a collaboration with Huang et al.~\cite{huang2026lta}, who developed the lighter-than-air blimp and the Webots simulation this thesis builds on. The blimp is a closely related micro-drone, held aloft by a helium balloon and driven by a different motor layout. Huang et al. demonstrated the base bearing and single-photodiode gradient methods on this blimp only in simulation, and never flew them on the real airframe~\cite{huang2026lta}. The real blimp flights instead use the photodiode board and fused controller developed in this thesis. Once the work of this thesis was complete on the CrazyFlie, Huang et al. mounted the same board and controller on the real blimp, adapting only the low-level control to its motor layout, and confirmed that it reaches several modulated beacons in turn and avoids obstacles on the blimp, just as it does on the CrazyFlie~\cite{huang2026lta}. The same board and algorithm therefore work across two different airframes, which shows that the approach depends on the light sensing rather than on the specifics of the platform.
 
