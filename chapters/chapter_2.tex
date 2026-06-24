@@ -1,48 +1,66 @@
 \chapter{Problem \& Algorithm Design}
 \label{chp:algorithm}
 
-This chapter develops the navigation method at the core of this thesis. We begin by showing in simulation why the bearing and single-photodiode gradient we build on each fall short of the task. We then design a fused controller that overcomes their limits. The chapter describes how it forms a bearing and builds a light map it reads a gradient from. It then covers how the controller chooses a gradient estimator and sequences a mission through a state machine. We close with the heading and speed it finally commands.
+This chapter designs the navigation controller at the core of this thesis. Huang et al.~\cite{huang2026lta} showed that a weight-, size-, and power-constrained micro-drone can reach a single light source in open space, using either a bearing read from a photodiode array or a gradient climbed with a single photodiode. This thesis aims to fill a gap in the work of Huang at al.: reaching several modulated beacons in succession while passing obstacles between them, using only on-board light sensing. We first show the existing methods do not solve this problem. The design question is therefore how to obtain obstacle-aware, multi-beacon navigation from light alone, within the constrained budget of the micro drone platform we chose.
+
+The controller we design combines two methods from the work by Huang at al. and expands upon the spatial memory of the light field. As the drone flies, it records the light strength measured by the eight-photodiode array into a map. From this map it estimates the light gradient, which yields a direction that should climb the light field. Building the map from the all eight photodiodes, rather than from a single photodiode, lets the drone record a usable value at every location it visits regardless of its heading, whereas a single fixed photodiode registers the source only while it faces it. The remaining sections develop the controller one component at a time: the bearing estimate, the separation of simultaneous beacons by modulation frequency, the light map, the gradient estimator and the choice among candidate estimators, the state machine that sequences a mission, and the heading and speed issued to the flight controller.
 
 \section{Why Existing Methods Fall Short}
+\label{sec:existing-methods-fall-short}
+Both methods were designed and evaluated for a single light source in open space, where each performs well~\cite{huang2026lta}. The task of this thesis adds two elements they were not built for: obstacles between the drone and the beacon, and more than one beacon. The following paragraphs explain why each method is inadequate under these conditions, and the simulations that follow make the failures concrete.
 
-The two methods this work builds on each steer toward a single light, but neither is enough for the navigation we are after. The bearing points straight at the source and works well in open space, yet it has no memory of where the light is: the moment an obstacle blocks the line of sight, the drone is left without a heading and cannot find its way around. Following the light gradient with a single photodiode, as in prior work~\cite{huang2026lta}, fares no better, since one sensor must infer the gradient from how its signal changes as the drone moves, which is slow and easily confused by noise.
+The bearing is an instantaneous estimate, formed from the relative magnitudes of the eight photodiode signals at a single instant as explained in \ref{sec:bearing}. Because it requires no integration over the drone's motion, it yields a heading immediately whenever the array receives the beacon's light, whether directly or through a reflection. This immediacy is also its central limitation: the bearing describes only the direction of the light arriving at that instant and retains no record of the surrounding space. When an obstacle blocks the beacon, the photodiode magnitudes fall toward the ambient level, and the magnitude-weighted direction no longer points at the source. The bearing then yields no usable heading, and it gives no indication that an obstacle is the cause or where the beacon now lies.
 
-We study these methods in a Webots simulation that recreates the navigation task, as Figure~\ref{fig:sim-setup} shows. The scene places a light source over the floor, an obstacle pillar in the path, and the drone to one side, so that the line of sight from the drone to the light is blocked unless the drone first routes around the pillar. Every controller we compare in this chapter, the bearing-only and gradient-only baselines as well as the fused controller, flies in this same scene from the same start position toward the same beacon, with identical sensing and flight settings, so that the only difference between the runs is the navigation method itself. The same environment also underlies the experiments of Chapter~\ref{chp:obstacle}.
+The single-photodiode gradient, the second method of Huang et al., recovers a direction with one sensor instead of an array, but it is slow and fragile. A single sensor measures one light value at a time, so it cannot sense a spatial gradient directly. It infers the gradient from how that value changes between successive positions, which forces the drone to keep moving to obtain any estimate, as Figure~\ref{fig:single-pd-gradient} illustrates. The estimate also depends on the drone's orientation, because one fixed sensor receives the direct beam only while it faces the source.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/single_pd_gradient.png}
+    \caption{Single-photodiode gradient estimation over the light field. A single sensor reads only one value at a time, so the drone must move to compare readings $S_1$, $S_2$, and $S_3$ along its path before it can infer which way the field rises. The reading also depends on the drone's heading: at the middle position the drone has rotated away from the source, so it reads low even though it is closer than the first, which corrupts the inferred gradient. The figure is an illustration drawn over real field data.}
+    \label{fig:single-pd-gradient}
+\end{figure}
+
+We examine these failures in simulation before testing on hardware, for two reasons. A simulated light field carries none of the ambient light or electrical noise of a real flight, so an observed failure can be attributed to the navigation method rather than to the sensing. The simulator also runs the same scenario repeatedly, at low cost and with no risk to the aircraft, which is what a controlled comparison of methods requires.
+
+The comparison uses the Webots environment of Section~\ref{sec:simulation}, shown in Figure~\ref{fig:sim-setup}. A single beacon sits above the floor, a pillar stands between the drone and the beacon, and the drone starts to one side, so the pillar obstructs the direct path to the beacon. Each controller flies this same scene, from the same start position to the same beacon, with identical sensing and flight settings, so the navigation method is the only variable between runs. The same environment is used for the experiments of Chapter~\ref{chp:obstacle}.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/simulation_setup.png}
-    \caption{The simulated test environment in Webots: a light source casting its pool of light on the floor, an obstacle pillar, and the drone approaching from one side.}
+    \caption{The simulated test environment in Webots. A single beacon illuminates the floor, a pillar stands in the line of sight, and the drone starts to one side.}
     \label{fig:sim-setup}
 \end{figure}
 
-In simulation, a bearing-only controller drives toward the light but, having no memory of the field, cannot plan a way around the obstacle in its path and collides with the pillar, as Figure~\ref{fig:bearing-fail} shows. The collision is already a failure: on a real platform such an impact could damage the drone or the obstacle.
+The bearing-only controller steers directly along the measured light direction. Since the pillar lies slightly off the direct line to the beacon, the bearing points just past its edge, and the controller follows that direction with no indication that it leads into the obstacle. The drone therefore collides with the pillar, as Figure~\ref{fig:bearing-fail} shows.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/bearing_only_sim/blimp_trajectory_2d.png}
-    \caption{Top-down trajectory in simulation: the bearing-only controller drives into the obstacle and cannot circle it cleanly, having no memory of the field to route around it.}
+    \caption{Top-down trajectory of the bearing-only controller in simulation. The drone follows the measured light direction past the edge of the pillar and collides with it.}
     \label{fig:bearing-fail}
 \end{figure}
 
-The single-photodiode gradient method struggles in the same setting: because it can only sense the gradient by moving, it follows a slow, wandering path that stalls at the obstacle rather than driving cleanly toward the source, as Figure~\ref{fig:gradient-fail} shows. Neither method, moreover, has any notion of more than one beacon, so reaching several lights in turn is out of reach from the start.
+The single-photodiode gradient controller does not reach the beacon either. It follows a slow, irregular path and, on reaching the pillar, stalls against it, as Figure~\ref{fig:gradient-fail} shows. The stall follows from how the gradient is estimated. The method reads the drone's position from the simulator's odometry, and while the drone is pressed against the pillar the odometry still reports forward progress. The estimated gradient therefore keeps pointing in the same direction, and the controller continues to push the drone against the obstacle rather than turning away.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/gradient_only_sim/blimp_trajectory_2d.png}
-    \caption{Top-down trajectory in simulation: single-photodiode gradient ascent wanders and stalls at the obstacle, never reaching the light source.}
+    \caption{Top-down trajectory of the single-photodiode gradient controller in simulation. The path is slow and irregular and stalls near the pillar, never reaching the beacon.}
     \label{fig:gradient-fail}
 \end{figure}
 
-These shortcomings set the agenda for the rest of this chapter: we develop a controller that fuses the two signals, estimates the gradient from all eight photodiodes rather than one, and remembers the light field in a map, so that it can route around obstacles and visit multiple beacons. Its positive results are presented in Chapter~\ref{chp:obstacle}.
+The two failures are complementary. The bearing is fast and accurate but has no memory beyond the current line of sight. The gradient tolerates a blocked line of sight but is slow and must read from accumulated measurements. A controller that maintains a short spatial memory can therefore follow the bearing while the beacon is visible and the remembered gradient when it is not. The remainder of this chapter develops this controller. The results are reported in Chapter~\ref{chp:obstacle}.
+
+Neither baseline supports more than one beacon, so neither can perform the multi-beacon traversal this thesis targets. We do not demonstrate the multi-beacon case in simulation. As Section~\ref{sec:simulation} explains, the simulator does not ray-trace the light but reads each sensor's intensity directly, and it does not reproduce the on-off modulation. Without that modulation the beacons cannot be told apart, so we chose to test beacon separation without the simulator in chapter~\ref{chp:multibeacon}.
 
 \section{System Overview}
+\label{sec:overview}
 
-To guide the drone toward a light beacon, we combine two inputs. Both come from the same photodiode array, whose board we present in Chapter~\ref{chp:hardware}. The first is a bearing angle that points straight at the source, which gives the controller an immediate heading whenever the beacon is in view. The second is a gradient direction, read from a map of the light field that the drone builds as it flies; this map records where the light is stronger, so it stays useful even when the drone can no longer see the beacon directly.
+The failures of the previous section define two requirements for the controller. First, the drone must move efficiently toward a visible beacon. Second, it must continue toward the beacon when the direct path is blocked. The controller meets both requirements with two direction estimates derived from the same photodiode array. The first is the bearing, which gives an immediate heading whenever the array receives the beacon's light. The second is a gradient, estimated from a light map that the drone builds as it flies; because the map records where the light was stronger, the gradient still gives a direction when the beacon is not directly visible.
 
-Neither input is enough on its own. As the previous section showed, the bearing is fast but has no memory, while the gradient is robust but only becomes available once the drone has built up a usable map. By combining them we get the best of both: the controller reacts quickly while the beacon is visible, yet keeps moving through a brief loss of signal by leaning on the map it has already built.
+Neither estimate is always trustworthy, so the controller must decide which to use at each moment. The bearing is not reliable when its magnitude is low, which happens when the beacon is weak or blocked as explained in \ref{sec:bearing-angle}. The gradient is meaningless until the map holds enough cells and they fit a consistent slope, measured by the coefficient of determination of Section~\ref{sec:gradient-estimation}. A state machine reads these two validity measures and selects the drone's behaviour: it follows the bearing estimate while its signal is reliable, adds the gradient once the map is dense enough and its estimate is deemed reliable, and follows the gradient alone when the bearing is invalid.
 
-Each update follows the same steps. First, the per-sensor light signals of Section~\ref{sec:lightsignal} are turned into a bearing estimate and added to the light map. Then the local gradient is read from the map, and the bearing and gradient are merged into a single target heading. A state machine decides how much to trust each input from the current signal strength and map coverage, and walks the drone through search, alignment, approach and recovery phases for each beacon in a multi-target mission, as summarised in Figure~\ref{fig:controller-overview}. The controller finally outputs a target heading and a forward speed, which are passed to the drone's own flight controller.
+Each control update follows the same sequence, summarised in Figure~\ref{fig:controller-overview}. The per-sensor light signals $S_n$ of Section~\ref{sec:lightsignal} are writen into the light map and converted into a bearing estimate. The gradient is then estimated from the map, and the bearing and gradient are merged into a single target heading. The state machine sets the drone's phase and forward speed for the current beacon, and on arrival advances to the next.
 
 \begin{figure}[h]
     \centering
@@ -68,74 +86,115 @@ Each update follows the same steps. First, the per-sensor light signals of Secti
         \draw[->] (fuse) -- (out);
         \draw[->] (out) -- (fc);
     \end{tikzpicture}}
-    \caption{Overview of the fused navigation controller. The photodiode array feeds both a bearing estimate and a light map; the gradient is read from the map; the fusion and state-machine stage merges the bearing and gradient into a target heading and forward speed, which are passed to the drone's flight controller.}
+    \caption{Overview of the fused navigation controller. The photodiode array feeds both a bearing estimate and a light map; the gradient is estimated from the map; the fusion and state-machine stage merges the bearing and gradient into a target heading and forward speed, which are passed to the drone's flight controller.}
     \label{fig:controller-overview}
 \end{figure}
 
 \section{Bearing Angle}
+\label{sec:bearing-angle}
 
-The first input to the controller is a bearing angle that points from the drone toward the light source. We obtain it from the bearing estimation algorithm of prior work by Harry Huang~\cite{huang2026lta}, which combines the relative light-signal magnitudes measured across the photodiode ring into a single direction; the full derivation is given in Section~\ref{sec:bearing}. This gives the controller an immediate sense of where the beacon lies, without having to explore the environment first.
+Before the controller can rely on the bearing, it must convert the raw estimate into a usable heading. The bearing itself is the estimator of Huang et al.~\cite{huang2026lta}, explained in Section~\ref{sec:bearing}. This estimator still requires smoothing and a measure of validity. This section describes the two steps the controller adds on top of it, a validity gate and temporal smoothing.
 
-Not every bearing can be trusted, so each one comes with a measure of signal strength. We only act on a bearing when its strength is above a minimum threshold, which keeps the controller from chasing a heading that is really just noise from a weak, distant or absent beacon. The bearings that do pass this check are then smoothed over time with an exponential moving average, so that a single noisy frame does not cause an abrupt change of heading before the bearing reaches the fusion stage and the state machine. The update is
+The bearing is only reliable when the photodiode array actually receives the beacon. With no beacon in view, every photodiode sees only ambient light, the vector sum has near-zero magnitude, and its angle is set by noise. The controller therefore uses the vector-sum magnitude as the validity measure, and acts on the bearing only when this magnitude exceeds a minimum threshold. This rejects headings that are really noise from a weak, distant, or absent beacon.
+
+A bearing that passes this test is still noisy between samples. Reflections, sensor noise, and small changes in attitude make the raw bearing jitter from one frame to the next, and acting on each raw value would make the heading of the drone jerk. The controller therefore smooths the bearing with an exponential moving average before passing it to the fusion stage and the state machine. The update is
 \begin{equation}
 \hat{\psi}_B \leftarrow \hat{\psi}_B + (1-\beta)\,\Delta,
 \label{eq:bearing-filter}
 \end{equation}
-where $\Delta$ is the wrapped angular difference between the new bearing and the current estimate $\hat{\psi}_B$, and $\beta$ controls how much of the history is kept.
-
-\section{Multi-Beacon Traversal}
-
-A mission can involve several beacons, each modulated at its own frequency. The drone senses all of them at the same time but visits them one after another. A single frequency analysis of the photodiode signal already contains every beacon's peak at once, so the sensing is fully parallel, as we show in Section~\ref{sec:freq-separation}; the controller then picks one beacon as its current target, flies to it, and on arrival selects the next, so the traversal itself is sequential.
-
-What makes this possible is the frequency analysis at the heart of the sensing pipeline, introduced in Section~\ref{sec:lightsignal}. Each beacon blinks at its own rate, so taking an FFT of a photodiode's signal decomposes that signal into its frequency components, and every beacon then shows up as a separate peak at its own modulation frequency whose height reflects how strongly that beacon is seen. Because a single recording already contains every beacon's peak, we can read all of them from the same data rather than attending to one beacon at a time.
-
-We must, however, choose these frequencies with care, because we modulate each beacon by switching its light on and off, which produces a square wave that carries strong energy not only at its own frequency but also at its odd harmonics~\cite{oppenheim1999dsp}. The frequency analysis itself separates a fundamental from its harmonics cleanly, since they fall in different bins; the danger is that if one beacon's frequency coincides with a harmonic of another, that harmonic deposits energy in the wrong beacon's bin and the two become hard to tell apart. We therefore space the modulation frequencies so that none lands on another's harmonics, a scheme we arrived at through a set of simple static experiments on the Teensy platform.
+where $\Delta$ is the wrapped angular difference between the new bearing and the current estimate $\hat{\psi}_B$, and $\beta$ sets how much of the past estimate is retained. A larger $\beta$ rejects more noise but responds more slowly to a genuine change in direction.
 
 \section{Light Intensity Map}
+\label{sec:light-intensity-map}
 
-As the drone flies, we build a spatial map of the light field that serves as the basis for gradient-based navigation. We turn the environment into a regular grid, and each cell records the strength of the light signal we measure as the drone passes through it, indexed by the drone's estimated position in a fixed world frame. Using a grid keeps the map compact: instead of storing every individual measurement, we combine all the readings that fall within the same cell into one representative value, so the size of the map depends on the area covered rather than on how long the drone has been flying. Because each reading is filed under the drone's estimated position, the map is only as trustworthy as that estimate: drift in the position estimate would smear the recorded field across neighbouring cells and blur the gradient we read from it. We assume the drone's onboard position estimate is accurate enough over the course of a mission for this smearing to stay small. We also limit how far the drift can accumulate: the map is not kept for the whole mission but reset whenever the drone switches from one beacon to the next, so it is always rebuilt afresh for the current beacon and any position error built up while chasing the previous one is discarded with the old map. 
+Gradient-based navigation needs a record of how the light varies across space, which the bearing alone does not provide. The controller builds this record as a light map. It divides the horizontal plane into a regular grid and stores one light value per cell, indexed by the drone's estimated position in a fixed world frame. Figure~\ref{fig:light-map} shows such a map after a survey of the area.
 
-The value we keep in a cell is the strongest light signal measured across the photodiode array at that location, using the per-sensor light signal defined in Section~\ref{sec:lightsignal}. When the drone revisits a cell, we do not overwrite its value but blend it with the new measurement through an exponential moving average,
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.72\textwidth]{figures/gradient_analysis/light_map.png}
+    \caption{A light-intensity map of the simulation, viewed from above. Each grid cell holds the strongest light signal recorded while the drone occupied it, drawn here as a smooth field. The strength rises toward the beacon, marked by the star, and this is the scalar field whose gradient the controller follows. The grey disc is the pillar, and the dashed circle the clearance the drone has to keep around it.
+    Since the light comes from above and the light sensors are placed on the horizontal plane there is a drop in recorded light strenght when very close or bellow the light source.}
+    \label{fig:light-map}
+\end{figure}
+
+Indexing by an estimated position introduces a source of error that the map must tolerate. The drone's on-board position estimate drifts slowly over time, as any odometry does. A drifting estimate files a measurement under the wrong cell, which smears the recorded field across neighbouring cells and blurs the gradient estimated from it.
+
+Two design choices limit this error. First, the map is reset whenever the drone switches to the next beacon. The error accumulated while approaching one beacon is then discarded with its map and does not carry into the next, so drift cannot build up across a whole mission. Second, the grid is only used to estimate the heading. We do not claim to estimate the real position of the beacon in relation to the drone. Meaning that if drift in position occurs the heading of the estimate and drone stays accurate. 
+
+Each cell stores the strongest light signal $S_n$ measured across the photodiode array at that location, using the per-sensor signal of Section~\ref{sec:lightsignal}. When the drone revisits a cell, the new measurement does not overwrite the stored value but updates it through an exponential moving average,
 \begin{equation}
 I_{\text{cell}} \leftarrow \alpha\,I_{\text{cell}} + (1-\alpha)\,I_{\text{new}},
 \label{eq:map-blend}
 \end{equation}
-which smooths out the short-lived fluctuations that occur as we sample the same location again over time. The smoothing factor $\alpha$ is set by default to weight the stored and new values equally; lowering it makes a cell follow new measurements more closely at the cost of more noise, while raising it gives a smoother but slower-adapting map.
+which averages out the sample-to-sample fluctuation seen when the same location is measured repeatedly. The factor $\alpha$ weights the stored value against the new one and is set by default to weight them equally. A smaller $\alpha$ tracks new measurements more closely at the cost of more noise, while a larger $\alpha$ gives a smoother but slower-adapting map.
 
-The map therefore approximates a scalar field that rises toward the source, since the measured signal grows as the drone approaches the beacon, and this gives the drone a spatial memory of the light that the reactive bearing alone lacks. Turning the field into a heading is the job of the gradient estimator described next.
+Across the visited area the map approximates a scalar field that rises toward the beacon, because the measured signal grows as the drone nears the source. This field is the spatial memory the bearing lacks, and the next section explaines how we estimate a direction from it.
 
 \section{Gradient Estimation}
+\label{sec:gradient-estimation}
 
-Gradient estimation gives the drone the direction it follows across the light map. Prior work inferred this direction from a single photodiode~\cite{huang2026lta}, reading the gradient from how that sensor's signal changed as the drone moved, which is slow because the drone must keep moving to sense anything, and fragile because one sensor sees the source only when it happens to face it. The eight-photodiode ring avoids both issues: whichever way the drone is yawed at least one sensor faces the source, so its orientation no longer blinds the measurement, and each location is captured directly rather than inferred from motion.
+The gradient gives the drone a direction to follow when the bearing is unavailable. It differs from the bearing in what it describes: the bearing points along the light arriving now, whereas the gradient points in the direction in which the stored light field increases fastest, which remains defined even when the beacon is hidden. Huang et al.~\cite{huang2026lta} estimated this direction from a single photodiode, by reading how that sensor's signal changed as the drone moved. That approach is firstly slow, because the drone must keep moving to gather readings. Secondly the approach is fragile, because a single fixed sensor measures the source only while it faces it. Both of these problems can be seen in Section~\ref{sec:existing-methods-fall-short}. Our controller instead estimates the gradient from the light map described in Section~\ref{sec:light-intensity-map}. Because the map is built from the full photodiode array, it records a usable value at each visited location regardless of the drone's heading. This removes the dependence on orientation and motion that limits the single-photodiode method.
 
-We estimate the gradient by fitting a plane to the map. To the cells $\{(x_i, y_i, I_i)\}$ near the drone's current position we fit $I(x,y) = a x + b y + c$ by weighted least squares, weighting each cell by the inverse square of its distance to the drone so that nearer cells count for more, and we take the gradient as $\mathbf{g} = (a, b)$; the controller steers along $\mathbf{g}$ whenever it navigates by the map. The same fit reports how well the cells agree with the plane, through a weighted coefficient of determination
+The controller estimates the gradient from the map by fitting a plane to it. Around the drone's current position it takes the cells $\{(x_i, y_i, I_i)\}$ and fits $I(x,y) = a x + b y + c$ by weighted least squares, weighting each cell by the inverse square of its distance to the drone so that nearer cells count for more. The fitted coefficients give the gradient $\mathbf{g} = (a, b)$, and the controller steers along $\mathbf{g}$ whenever it navigates by the map.
+
+A gradient estimate, like a bearing, can be unreliable, so the controller needs a measure of its validity. The plane fit provides one directly. It reports how closely the cells follow the fitted plane, through a weighted coefficient of determination
 \begin{equation}
 R^2 = 1 - \frac{\sum_i w_i\,(I_i - \hat{I}_i)^2}{\sum_i w_i\,(I_i - \bar{I}_w)^2},
 \label{eq:gradient-r2}
 \end{equation}
-where $\hat{I}_i$ is the plane's value at cell $i$, $\bar{I}_w$ the weighted mean of the cell values, and $w_i$ the inverse-distance weights, which we use as a measure of how far the gradient can be trusted.
+where $\hat{I}_i$ is the plane's value at cell $i$, $\bar{I}_w$ is the weighted mean of the cell values, and $w_i$ are the inverse-distance weights. An $R^2$ near one means the cells lie close to a single plane, so the fitted direction is trustworthy. A low $R^2$ means they do not, so the gradient should not be followed.
 
-This trust matters, because a gradient computed from too few cells, or from cells that do not fall on a clean slope, would point the drone the wrong way. We therefore treat the gradient as reliable only when it is supported by at least a minimum number of cells, when its $R^2$ exceeds a threshold, and when its magnitude is large enough to be meaningful; the specific values, together with the controller's other parameters, are listed in Appendix~\ref{app:parameters}. This is exactly the reliability the state machine refers to: until it is met the drone navigates on the bearing alone, and once it is, the gradient is blended into the heading or, when the bearing is lost, followed on its own.
+Three conditions must hold for the controller to act on a gradient. The fit must use at least a minimum number of cells, because a plane through two or three points is set by noise as much as by the field. Its $R^2$ must exceed a threshold, which rejects fits where the cells do not lie on a consistent slope, as happens where the field is flat or where the map is still patchy. Its magnitude must be large enough to be meaningful, so the drone does not chase a near-flat field. The thresholds, with the controller's other parameters, are listed in Appendix~\ref{app:parameters}. These three conditions define the gradient reliability used by the state machine. While they fail, the drone navigates on the bearing alone. Once they hold, the controller blends the gradient into the heading, or follows it alone when the bearing is lost.
 
-The gradient itself can be estimated in more than one way, and the best choice is not obvious for the sparse, unevenly spaced cells of a real map. We therefore implement and compare five candidate methods: ordinary and weighted least-squares plane fits~\cite{bjorck1996lsq, strutz2016wls}, a robust RANSAC fit~\cite{fischler1981ransac}, a local polynomial surface fit~\cite{bjorck1996lsq}, and finite differences~\cite{leveque2007fdm}. We judge them on three criteria, in order of importance: how often each returns a usable estimate, how accurately that estimate points, and how much computation it costs, since the method has to run on the drone's small microcontroller. Figure~\ref{fig:gradient-comparison} reports the first two for each method on a densely sampled reference map of the simulated light field.
+\subsection{Selection of the Gradient Estimator}
+\label{sec:gradient-estimator-comparison}
 
-We define these measures over a set of $N$ cells sampled across the reference map. At each cell a method either returns a gradient estimate that passes the reliability gates of the previous section or returns nothing; with $S_m$ the cells where method $m$ succeeds, its success rate is $|S_m| / N$. For each returned estimate $\hat{\mathbf{g}}_i = (\hat{a}_i, \hat{b}_i)$ we take the angular error against the direction straight to the source,
+Estimating a gradient from sparse and irregularly spaced map cells is a well-studied problem, but it is not obvious which estimator is best suited to the light maps produced during flight. Different methods make different trade-offs between robustness, accuracy, computational cost, and the ability to produce an estimate when map coverage is limited.
+
+Since the gradient estimator runs continuously on the drone's microcontroller, the chosen method must not only be accurate but must also return estimates reliably and execute within the available computational budget. We therefore compare several candidate estimators before selecting the approach used by the controller. Five candidate methods were evaluated:
+
+\begin{itemize}
+    \item Ordinary least-squares plane fitting (OLS) \cite{bjorck1996lsq}.
+    \item Weighted least-squares plane fitting (WLS) \cite{strutz2016wls}.
+    \item RANSAC plane fitting \cite{fischler1981ransac}.
+    \item Local polynomial surface fitting \cite{bjorck1996lsq}.
+    \item Finite-difference estimation \cite{leveque2007fdm}.
+\end{itemize}
+
+All methods estimate the local gradient from neighbouring map cells but differ in how they treat noise, sparse sampling, and outliers.
+
+\subsubsection{Evaluation Procedure}
+
+The methods were evaluated using a densely sampled reference map generated from the simulated light field. This reference map included an obstacle creating a shadow. This addition let us evalute the estimators for the task they will be used for, avoiding obstacles and guiding the drone away from shadows. At each map location a method either produced a gradient estimate that passed the reliability criteria of  Section~\ref{sec:gradient-estimation} or returned no estimate. Three criteria were considered:
+
+\begin{enumerate}
+    \item Success rate: how often a usable estimate is produced.
+    \item Directional accuracy: how closely the estimated direction matches the
+        direction towards the light.
+    \item Computational cost: the processing required for a single estimate.
+\end{enumerate}
+
+Success rate is the most important criterion because the gradient's primary purpose is to remain available when the bearing is lost. An estimator that is slightly less accurate but available almost everywhere is more useful to the controller than a highly accurate estimator that frequently returns no result. This effect is compounded by the fact that we intend to fuse this gradient estimate with the bearing estimate, which in the work by Huang et al. shows high accuracy but only when the beacon is in direct line of sight \cite{huang2026lta}.
+
+Directional accuracy was measured using the angular error:
 \begin{equation}
 e_i = \left| \left( \hat{\theta}_i - \theta_i^\star + 180^\circ \right) \bmod 360^\circ - 180^\circ \right|,
 \label{eq:angle-error}
 \end{equation}
-where $\hat{\theta}_i = \operatorname{atan2}(\hat{b}_i, \hat{a}_i)$ is the estimate's heading and $\theta_i^\star = \operatorname{atan2}(y_L - y_i,\, x_L - x_i)$ points from cell $i$ to the source at $(x_L, y_L)$, and the wrap folds the unsigned difference into $[0^\circ, 180^\circ]$. We discard cells within ten centimetres of the source, where the field is too steep to give a meaningful reference, and note that this straight-to-source reference is itself only approximate behind the pillar, where the helpful direction leads around the obstacle rather than at it. We then average $e_i$ two ways: the own-coverage error over a method's own cells $S_m$, and the common-coverage error over the cells $C = \bigcap_m S_m$ that every method estimates.
+where $\hat{\theta}_i = \operatorname{atan2}(\hat{b}_i, \hat{a}_i)$ is the estimate's heading and $\theta_i^\star = \operatorname{atan2}(y_L - y_i,\, x_L - x_i)$ points from cell $i$ to the source at $(x_L, y_L)$, and the wrap folds the unsigned difference into $[0^\circ, 180^\circ]$. We discard cells within ten centimetres of the source, where the field is too steep to give a meaningful reference, and note that this straight-to-source reference is itself only approximate behind the pillar, where the helpful direction leads around the obstacle rather than at it.
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.85\textwidth]{figures/gradient_analysis/gradient_method_performance.png}
-    \caption{Coverage and accuracy of the five gradient estimation methods on the reference map. Success rate is the share of points where the method returns a usable estimate. Accuracy is the angular error against the straight-to-source direction, reported both on the common set of points that every method estimates and on each method's own coverage.}
-    \label{fig:gradient-comparison}
-\end{figure}
+A direct comparison of average angular error can be misleading because the methods do not estimate the gradient at the same locations. Some methods return an estimate almost everywhere, while others decline to produce an estimate when the local map is sparse or difficult to fit. As a result, each method is effectively being tested on a different set of points.
 
-Coverage is the criterion that matters most. The bearing already gives the controller an accurate heading in open space, so the gradient does not have to be precise there; its job is to be available wherever the drone is, and above all when the bearing is lost behind an obstacle or between beacons. A method that often returns nothing leaves the controller flying blind at exactly those moments. Finite differences return an estimate almost always, at 99.7\%, but from so few cells that the direction is noisy; RANSAC succeeds least often, at 71\%, discarding too many cells as outliers; and the plane and polynomial fits sit between. Weighted least squares returns a usable estimate 96\% of the time, second only to the noisy finite differences.
+To separate accuracy from coverage, we report two error measures. The first is the error on a method's own successful estimates. This uses every location where that method produces a valid gradient. The second is the error on the common subset of estimates, defined as the locations where all methods successfully produce a gradient.
 
-The raw angular error, by contrast, is a misleading way to rank the methods, because it is entangled with coverage. A method that quietly fails on the hardest cells is never charged for them, so its average error flatters it, while a high-coverage method like weighted least squares is scored everywhere, including the cells right under the elevated source where the measured field bends sharply and behind the pillar where it leads around the obstacle rather than straight at it. This shows directly in the figures: on its own coverage weighted least squares records a mean error of 29 degrees, against 5.6 degrees for the low-coverage RANSAC fit. When we instead score every method on the same common set of cells, the cells that all of them estimate, the gap nearly closes. The plane, polynomial, RANSAC and weighted least-squares fits then agree to within about three degrees, from 5.6 to 8.5 degrees of mean error, with only finite differences staying noticeably noisier at 14.6 degrees; weighted least squares itself falls from 29 to 8.5 degrees, which shows that most of its apparent inaccuracy was simply the price of estimating the difficult cells the other methods decline. The remaining differences of a few degrees are not decisive: the bearing compensates them in open space, and the steep field under the source would not even appear in flight, where the drone follows a partial map and never measures that drop.
+The distinction is important. Consider two methods: one returns estimates at 95\% of locations, while another returns estimates at only 70\%. The lower-coverage method can avoid many of the difficult locations simply by refusing to estimate there. Its average error may therefore appear lower, not because its estimates are inherently better, but because it is evaluated only on easier cases. The common-subset comparison removes this effect by ensuring that every method is scored on exactly the same locations.
+
+This behaviour is visible in the results. Weighted least squares appears substantially less accurate when evaluated over its own coverage because it continues to provide estimates in difficult regions, including locations close to the source and behind the obstacle. When the comparison is restricted to the common subset, where all methods are evaluated on the same points, the differences between the plane-fitting methods become much smaller. This indicates that most of the apparent accuracy gap is caused by differences in coverage rather than differences in the quality of the estimated direction itself.
+
+
+\subsubsection{Results}
+
+Figure~\ref{fig:gradient-directions} compares the spatial behaviour of the five estimators across the reference field. Rather than displaying the exact angular error at each location, the figure shows whether each estimate satisfies the controller's reliability criteria. This presentation better reflects the estimator's intended role within the navigation system, where the key question is whether a usable gradient is available.
 
 \begin{figure}[p]
     \centering
@@ -144,21 +203,60 @@ The raw angular error, by contrast, is a misleading way to rank the methods, bec
     \label{fig:gradient-directions}
 \end{figure}
 
-Computational cost and robustness settle the choice. Weighted least squares solves one small fixed-size linear system whose runtime is the same on every call, which sits comfortably within the budget of the drone's microcontroller, and its inverse-distance weighting makes it robust to the changes in overall light level that occur as the drone moves nearer to or further from the source. RANSAC, the most accurate method on its own coverage, is the most expensive and the least predictable, since it repeatedly fits and scores random subsets and its running time varies from call to call, which is awkward for a real-time control loop on a small processor. Finite differences are the cheapest but the noisiest. Weighted least squares therefore offers the best combination for this platform: the highest usable coverage, a low and constant computational cost, and robustness to light-level changes, which is why the controller estimates its gradient this way.
+The figure shows that weighted least squares provides reliable estimates across most of the environment, including regions where map coverage is sparse. RANSAC rejects many locations, while finite differences remain available almost everywhere but generate noticeably noisier directions. Figure~\ref{fig:gradient-comparison} summarises the results quantitatively.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/gradient_analysis/gradient_method_performance.png}
+    \caption{Coverage and accuracy of the five gradient estimation methods on the reference map. Success rate is the share of points where the method returns a usable estimate. Accuracy is the angular error against the straight-to-source direction, reported both on the common set of points that every method estimates and on each method's own coverage.}
+    \label{fig:gradient-comparison}
+\end{figure}
+
+Weighted least squares produced valid estimates at approximately 96\% of evaluated locations, second only to finite differences at 99.7\%. RANSAC achieved the lowest coverage at approximately 71\%. 
+
+When all methods are evaluated on the common set of locations where every method succeeds, the plane-fitting approaches differ by only a few degrees of mean angular error. Most of the apparent error difference observed on each method's own coverage is therefore caused by differences in which locations are estimated rather than by the intrinsic quality of the estimated direction. 
+
+\subsubsection{Selected Method}
+
+Weighted least squares was selected for the controller. Although several methods achieve similar directional accuracy, weighted least squares provides the best balance between the three evaluation criteria. It offers near-complete coverage, low computational cost, deterministic execution time, and robustness to variations in measurement density and overall light level.
+
+Finite differences provide slightly higher coverage but at the cost of substantially noisier estimates. RANSAC produces accurate estimates where it succeeds but has the lowest coverage and the highest computational cost due to its iterative random sampling procedure. 
+
+Weighted least squares therefore provides the most suitable compromise for real-time deployment on the drone's microcontroller and is used throughout the remainder of this work.
+
+\section{Multi-Beacon Traversal}
+
+The designed controller must be able to tell different beacons apart. We make the beacons distinguishable by modulating each one at a distinct frequency. A frequency analysis of a single photodiode signal then yields a separate peak per beacon, so the photodiode array can sense them all of them at once. The flight and traversal itself is sequential: the controller selects one beacon as the current target, flies to it, and on arrival selects the next.
+
+Beacon separation relies on a frequency analysis of a photodiode signal. A photodiode reports one value over time, in which every beacon and the steady background light are mixed together. A Fourier transform decomposes that signal into the strength it carries at each frequency. Because each beacon switches on and off at its own rate, its energy concentrates at its own frequency and shows up as a peak there, with a height that reflects how strongly that beacon is seen. Figure~\ref{fig:fft-mock} illustrates this using generated data for two beacons modulated at 150 and 200\,Hz: their signals overlap in time but separate into distinct peaks in frequency. This chapter uses only this much of the analysis; the full pipeline that recovers each peak on the noisy real platform is described in Chapter~\ref{chp:realworld}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fft_mock.png}
+    \caption{Separating two beacons by modulation frequency. This is generated data, shown only to illustrate the principle. Two lights are switched on and off as square waves at 150 and 200\,Hz, and one photodiode sees their sum as an ADC reading between 0 and 4095. Left: a short slice of that reading in time, where the two beacons are not separable. Right: the magnitude of its Fourier transform, where each beacon appears as a peak at its own frequency. The dotted lines mark the odd harmonics that a square wave also produces.}
+    \label{fig:fft-mock}
+\end{figure}
+
+Every photodiode produces this same set of peaks, and the peak heights differ across the array according to the direction each beacon comes from. Feeding the per-beacon, per-photodiode peak heights into the bearing estimator of Section~\ref{sec:bearing} therefore yields a bearing for each beacon from a single recording.
+
+The modulation frequencies must be chosen with care. Switching a light fully on and off produces a square wave, which carries energy not only at its fundamental frequency but also at its odd harmonics~\cite{oppenheim1999dsp}. These odd harmonics can also be seen in Figure~\ref{fig:fft-mock}. The analysis separates a fundamental from its harmonics, because they fall in different frequency bins. A problem arises only when one beacon's fundamental coincides with a harmonic of another, since that harmonic then adds energy to the wrong beacon's bin and the two become difficult to distinguish. We took this into account when choosing the modulation frequencies for our experiments.
 
 \section{Controller State Machine}
 
-A state machine governs what the drone does at each moment of a flight, since the bearing and gradient tell it which way to go but not what to do. It moves the drone through a small set of navigation phases, runs through them once for every beacon in the mission, and governs when the drone may rely on the map instead of the bearing, as Figure~\ref{fig:state-machine} shows.
+\label{sec:state-machine}
+The bearing and gradient supply a direction, but not the behaviour the drone should adopt at a given moment. Two situations make a decision around what the drone does necessary. In the first, the drone has no trustworthy estimate, either before it has acquired a beacon or when the light is blocked and the map is still empty. In the second, both estimates are available, and the controller must decide how far to rely on each as it moves. We resolve both with a navigation state machine, shown in Figure~\ref{fig:state-machine}, which has five states: \emph{searching}, \emph{aligning}, \emph{approaching}, \emph{dwelling}, and \emph{recovering}. The following paragraphs describe each state and its purpose.
 
-The drone starts in a searching phase, where it has no usable bearing or gradient yet. Here it slowly rotates in place to sweep the photodiode ring across the room until a beacon comes into view, and as soon as a bearing arrives with enough signal strength to be trusted, the drone moves on to aligning.
+In the \emph{searching} state the drone has no trustworthy bearing or gradient estimate, and its purpose is to acquire a beacon. Because the photodiode array already covers every direction, scanning by rotation would reveal nothing new. The drone instead flies a bounded figure-of-eight path, moving out to a fixed search radius and reversing at its edge. This carries it across the surrounding area, so it passes through positions where the beacon's signal is strong while recording the first cells of the light map. The drone leaves \emph{searching} as soon as the signal produces a bearing whose magnitude exceeds the trust threshold. It does not act on the gradient while searching; the map built here is used only from \emph{approaching} onward.
 
-In the aligning phase the drone turns toward the target without flying forward, so that it is pointing roughly the right way before it commits to moving. Once its heading is within a small tolerance of the target it switches to approaching and begins to fly forward, correcting its heading continuously as it goes. If it later drifts too far off heading, it drops back to aligning.
+In the \emph{aligning} state the drone turns toward the target while holding position, so it points at the beacon before committing to forward motion. It transitions to \emph{approaching} once its heading is within the alignment tolerance of the target direction, $15^\circ$ in this work. Appendix~\ref{app:parameters} lists this and the other controller parameters.
 
-Throughout aligning and approaching, the heading the drone follows is not the bearing alone. While the map is still sparse the drone steers by the bearing, but as soon as the gradient becomes reliable the controller blends it into the heading, so the drone is already using both inputs together well before it would ever need to fall back on the map by itself.
+In the \emph{approaching} state the drone flies forward while continuously correcting its heading toward the target. If its heading later drifts beyond a wider re-alignment threshold of $30^\circ$, it returns to \emph{aligning}, so the drone never flies forward while badly misaligned.
 
-The drone knows it has arrived when the signal strength climbs above an arrival threshold, which only happens close to the beacon. The arrival threshold can be tuned for different beacons or circumstances. It then enters a dwelling phase, holding its position for a short, configurable time before moving on to the next beacon and starting the cycle again. When the last beacon has been reached, the mission is complete.
+The heading followed during \emph{aligning} and \emph{approaching} is not always the bearing alone. While the map is still sparse the drone steers by the bearing. Since too few cells have been recorded for a reliable gradient. Once the gradient passes the reliability conditions of Section~\ref{sec:gradient-estimation}, the controller blends it into the heading. The drone therefore already combines both inputs during a normal approach, well before the bearing is ever lost, which makes the later hand-off to the gradient seamless.
 
-The recovering phase is what keeps the drone moving when the beacon disappears, for example when an obstacle comes between the drone and the light and a purely reactive controller would be stuck. If the bearing is lost but the gradient map is still reliable, the drone enters this phase and keeps flying forward on the gradient direction alone, climbing the stored light field to work its way out of the shadow. As soon as the beacon comes back into view it returns to approaching, and only if the map itself becomes unreliable does it fall back to searching.
+The drone must also detect arrival at a beacon. The measured light strength rises as the drone nears the source, so the drone is treated as arrived once this strength exceeds an arrival threshold, reached only close to the beacon. This threshold is tuned per flight, with its value listed in Appendix~\ref{app:parameters}. On arrival the drone enters the \emph{dwelling} state, holds position for a fixed dwell time of $1.0$\,s, and then moves to the next beacon. 
+
+The \emph{recovering} state handles the case where the bearing becomes invalid in flight, for example when an obstacle moves between the drone and the beacon. The magnitude of the bearing estimate then drops below the trust threshold, and a controller without memory would have no heading to follow. However, if the gradient estimate still meets its reliabilty conditions, the drone enters \emph{recovering} and continues on the gradient direction alone. Climbing the stored light field to move out of the obstacle's shadow. It returns to \emph{approaching} as soon as the bearing is valid again, and falls back to \emph{searching} only if the gradient estimate also becomes unreliable.
 
 \begin{figure}[h]
     \centering
@@ -182,24 +280,26 @@ The recovering phase is what keeps the drone moving when the beacon disappears, 
         \draw[->] (AL) to[bend left=18] node[midway,above,lbl]{aligned} (AP);
         \draw[->] (AP) to[bend left=18] node[midway,below,lbl]{off heading} (AL);
         \draw[->] (AP) -- (DW) node[midway,above,lbl]{arrived};
-        \draw[->] (AP) to[bend left=12] node[midway,right,lbl]{signal lost} (RE);
-        \draw[->] (RE) to[bend left=12] node[midway,left,lbl]{signal back} (AP);
-        \draw[->] (RE) -- (S) node[midway,below,lbl,sloped]{map lost};
+        \draw[->] (AP) to[bend left=12] node[midway,right,lbl]{bearing estimate unreliable} (RE);
+        \draw[->] (RE) to[bend left=12] node[midway,left,lbl]{bearing estimate reliable} (AP);
+        \draw[->] (RE) -- (S) node[midway,below,lbl,sloped]{gradient estimate unreliable};
         \draw[->] (DW) to[bend right=22] node[midway,below,lbl]{next beacon} (S);
     \end{tikzpicture}}
-    \caption{Navigation state machine, run once per beacon. The drone searches for the beacon, aligns its heading, then approaches while correcting; it dwells briefly on arrival before moving to the next beacon, and enters recovering to follow the gradient map alone when the bearing is lost behind an obstacle.}
+    \caption{Navigation state machine. The drone searches for a beacon, aligns its heading, then approaches while correcting; on arrival it dwells briefly before moving to the next beacon. It enters recovering to follow the gradient alone when the bearing becomes invalid, and returns to searching if the gradient estimate also becomes unreliable.}
     \label{fig:state-machine}
 \end{figure}
 
 \section{Control Output}
 
-The controller's main output is a single target heading, formed by merging the bearing direction $\psi_B$ and the gradient direction $\psi_G$. Because both are angles, we combine them with a weighted circular mean~\cite{mardia2000directional},
+The controller's primary output is a single target heading, obtained by merging the bearing direction $\psi_B$ and the gradient direction $\psi_G$. Both are angles, so the controller combines them with a weighted circular mean~\cite{mardia2000directional},
 \begin{equation}
 \psi = \operatorname{atan2}\!\big(w_B \sin\psi_B + w_G \sin\psi_G,\; w_B \cos\psi_B + w_G \cos\psi_G\big),
 \label{eq:fusion}
 \end{equation}
-rather than a plain average, which would suffer wrap-around errors near 0 and 360 degrees. When both inputs are reliable we set $w_B = w_G$, weighting them equally; when only one is available its weight is one and the other zero; and when neither is, the drone holds its current heading. With these fixed, equal weights the combination is closer to a gated hand-off than to a continuous, confidence-weighted fusion: where both signals overlap the heading is simply their bisector, and the rest of the time the controller acts on whichever signal the state machine deems reliable, the bearing in open space and the gradient behind an obstacle. We keep this simple and predictable form here; letting $w_B$ and $w_G$ scale with a per-signal confidence is a natural extension we leave to future work.
+A plain numerical average is unsuitable here because angles wrap at $360^\circ$. Averaging $359^\circ$ and $1^\circ$ gives $180^\circ$, the opposite of the correct direction, whereas the circular mean returns $0^\circ$.
 
-Alongside the heading, the controller sets a forward speed. The drone only flies forward once it is roughly pointing at the target, so the speed is held at zero while it is still turning to align and set to a fixed cruising speed once it is aligned and approaching. This keeps the drone from drifting sideways while it corrects a large heading error.
+The weights $w_B$ and $w_G$ follow the validity of each input, as decided by the state machine. When both are valid, the controller sets $w_B = w_G$, so the heading is their bisector. When only one is valid, its weight is one and the other zero, and the controller follows that input alone. When neither is valid, there is no direction to command, and the drone reverts to the \emph{searching} behaviour of Section~\ref{sec:state-machine} rather than holding a fixed heading. With fixed, equal weights, the combination is a gated hand-off rather than a continuous, confidence-weighted fusion.
 
-The heading and speed are handed to the drone's own flight controller as setpoints, while the altitude is held at a fixed height throughout. The controller therefore commands the drone in the horizontal plane only, leaving the low-level work of stabilising the drone and holding altitude to the flight controller beneath it.
+The controller also sets a forward speed. The drone flies forward only when it points at the target, so the speed is zero while it turns to align and a fixed cruising value once it is aligned and approaching. Holding the speed at zero during a large heading correction keeps the drone from drifting sideways.
+
+The heading and forward speed are sent to the platform's own flight controller as setpoints, and the altitude is held at a fixed height throughout. The navigation controller thus operates only in the horizontal plane and performs no low-level attitude stabilisation or altitude control, which the flight controller already handles. Because the navigation communicates only through a heading and a speed, it is independent of the airframe beneath it. The same implementation runs in the Webots simulation and on the real CrazyFlie.
