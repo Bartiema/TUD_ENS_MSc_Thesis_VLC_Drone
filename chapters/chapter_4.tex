@@ -4,6 +4,7 @@
 On the real drone, the per-sensor light signal $S_n$ that the controller depends on is not available directly. Each photodiode delivers a single noisy voltage in which the beacon is buried among ambient light, electrical interference, and mechanical vibration. This chapter develops the signal pipeline that recovers the beacon from that voltage and reports, alongside each reading, a signal-to-noise ratio that quantifies how far the reading can be trusted. We first describe the pipeline stage by stage, from the analogue anti-aliasing filter through the frequency analysis to the per-channel smoothing. We then validate the pipeline in flight, isolating what each stage contributes to the recovered signal. Finally, we measure how ambient light degrades the signal and confirm the mechanism behind it.
 
 \section{From Intensity to SNR}
+\label{sec:intensity-to-snr}
 
 In simulation the per-sensor light signal requires no recovery. As Section~\ref{sec:simulation} describes, each photodiode is a modelled light sensor that reports the intensity reaching it directly, so $S_n$ is read straight from the sensor. The real platform allows no such direct reading. On the drone each photodiode reports a single voltage in which the target beacon, the ambient room lighting, sunlight through a window, and reflections off the walls and floor are summed together. This raw voltage is not meaningless, but on its own it is an unreliable navigation cue, because it cannot separate the light arriving from the target beacon from everything else the sensor sees.
 
@@ -105,6 +106,7 @@ The smoothing improves the magnitude the controller steers on, but it must not d
 
 
 \section{Filter Validation}
+\label{sec:filter-validation}
 
 We now test what each stage of the pipeline contributes in flight, and whether each is justified. We hold the drone at a fixed pose, 95\,cm from a single 150\,Hz beacon, so that the true signal is constant and any variation recorded over time is the noise and jitter that the filters are meant to remove. From each held run we take two numbers: the mean SNR, which reflects the signal level, and the standard deviation of the SNR, which reflects its jitter.
 
