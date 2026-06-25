@@ -251,6 +251,7 @@ Finite differences provide slightly higher coverage but at the cost of substanti
 Weighted least squares therefore provides the most suitable compromise for real-time deployment on the drone's microcontroller and is used throughout the experiments in this work.
 
 \section{Multi-Beacon Traversal}
+\label{sec:multibeacon-separation}
 
 In the real-world application, when multiple targets are present, the controller must be able to distinguish different beacons. We make the beacons distinguishable by modulating each one at a distinct frequency. Frequency analysis of a single photodiode signal then produces a separate peak for each beacon, allowing the photodiode array to sense multiple beacons at the same time. The traversal remains sequential. The controller selects one beacon as the current target, flies toward it, and selects the next beacon once the target is reached.
 
