@@ -116,7 +116,7 @@ The drone senses the target light with photodiodes. A photodiode produces a smal
 \section{Algorithms from Huang et al.}
 \label{sec:algorithms}
 
-This thesis builds on the single-beacon algorithms of Huang et al.~\cite{huang2026lta}. They propose three: bearing angle guidance (BAG), dither-free gradient ascent (DGA), and dither extremum seeking (DES). We build on BAG and DGA, and describe DES to explain why we do not. Table~\ref{tab:algorithms-comparison} compares all three.
+This thesis builds on the single-beacon algorithms of Huang et al.~\cite{huang2026lta}. They propose three: bearing angle guidance (BAG), dither-free gradient ascent (DGA), and dither extremum seeking (DES). We build on BAG and DGA, and describe DES to explain why we do not. Section~\ref{sec:algorithm-comparison} compares all three.
 
 \subsection{Bearing Angle Estimation}
 \label{sec:bearing}
@@ -165,6 +165,7 @@ The difficulty is measuring the gradient, and Huang et al.\ propose two ways to 
 The second, dither-free gradient ascent, removes the oscillation. It still uses a single photodiode, but instead of probing around it estimates the gradient from the drone's recent motion. The drone records where it has been and how strong the light was there. It then fits a plane to these recent measurements by least squares. The slope of that plane is the gradient~\cite{huang2026lta}. This avoids the dither, but it still relies on a single sensor and on a position estimated by dead reckoning: the drone accumulates its own motion with no external reference, so the estimate drifts over time. The method is therefore slow, since the drone must keep moving to gather points, and it is sensitive to that drift. This dither-free gradient ascent is the gradient method this thesis builds on. Chapter~\ref{chp:algorithm} shows how estimating the gradient from all eight photodiodes and a map of the field, rather than from one sensor and recent motion, removes the single-sensor and dead-reckoning weaknesses just described.
 
 \subsection{Comparing the Algorithms}
+\label{sec:algorithm-comparison}
 
 The three methods differ in how directly and how quickly they reach the source, and in the sensing hardware this requires. The bearing flies the most direct route, in 7.3~metres and 8.4~seconds, but it requires the full photodiode array. Both single-photodiode methods wander further and are markedly slower, taking two to three times as long to reach the source. Dither-free gradient ascent takes 8.6~metres and 21.4~seconds, while the dithering extremum seeker is the slowest and least direct at 12.2~metres and 25.6~seconds, its oscillation lengthening the path. Table~\ref{tab:algorithms-comparison} sets the three side by side, with the path length and travel time Huang et al.\ measured for each on the same task~\cite{huang2026lta}. The bearing and the dither-free gradient are the two this thesis builds on, and Chapter~\ref{chp:algorithm} develops how they are combined.
 
