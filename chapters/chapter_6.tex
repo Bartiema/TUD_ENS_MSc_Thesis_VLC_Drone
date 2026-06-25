@@ -4,12 +4,13 @@
 This chapter tests the central task of the thesis: reaching a beacon when an obstacle blocks the way. We first survey the real-room light field to confirm the obstacle leaves a navigable shadow. We then show the fused controller solving in simulation the scene that defeated both baselines. Next we fly the obstacle mission on the CrazyFlie. We close by reporting how the same board and controller carry over to a blimp.
 
 \section{Experimental Setup}
+\label{sec:obstacle-setup}
 
 We study the obstacle task in two stages, each isolating a different source of difficulty. We first repeat the simulation of Chapter~\ref{chp:algorithm}, the same scene in which the bearing-only and gradient-only baselines failed, and show that the fused controller succeeds where they did not. We then move to the real room, flying the CrazyFlie~2.1 with the photodiode board of Chapter~\ref{chp:hardware} and the full signal pipeline of Chapter~\ref{chp:realworld}, to confirm that the controller remains effective under the conditions of real flight. In both stages the obstacle is set into the route between the drone's start and the beacon, a little to one side rather than squarely in the line of sight. A box placed dead-centre would hide the beacon along the entire approach, reducing the task to a blind search. Offset to one side, it instead occludes the beacon over only part of the path while leaving a route the drone can discover, which is both the harder navigation problem and the more realistic one. The offset stays small enough that the drone must still steer around the box to reach the beacon.
 
-The simulated scene is the one already shown in Figure~\ref{fig:sim-setup}, with the beacon, the obstacle pillar, and the drone approaching from one side, so we do not repeat it here. Figure~\ref{fig:obstacle-setup} shows the real-room geometry. The room carries the same two beacons as the open-space traverses of Chapter~\ref{chp:multibeacon}, and each obstacle flight targets one of them. The photograph in Figure~\ref{fig:flight-setup} shows the same box already in place. As with the open-space setup of Chapter~\ref{chp:multibeacon}, the top-down geometry of Figure~\ref{fig:obstacle-setup} is an indicative reference to the room's layout rather than a measured survey. The drone's odometry localises its positions, so its plotted distances and beacon locations are not exact room measurements.
+The simulated scene is the one already shown in Section~\ref{sec:existing-methods-fall-short}, with the beacon, the obstacle pillar, and the drone approaching from one side, so we do not repeat it here. Figure~\ref{fig:obstacle-setup} shows the real-room geometry. The room carries the same two beacons as the open-space traverses of Chapter~\ref{chp:multibeacon}, and each obstacle flight targets one of them. The photograph in Section~\ref{sec:multibeacon-setup} shows the same box already in place. As with the open-space setup of Chapter~\ref{chp:multibeacon}, the top-down geometry of Figure~\ref{fig:obstacle-setup} is an indicative reference to the room's layout rather than a measured survey. The drone's odometry localises its positions, so its plotted distances and beacon locations are not exact room measurements.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/real_life_setup_plot_with_obstacle.jpeg}
     \caption{Top-down geometry of the real-room obstacle experiment. The room carries the same two beacons as the traverses of Chapter~\ref{chp:multibeacon}; each obstacle flight targets one of them, with the obstacle set into the route toward it and a little to one side. The layout is indicative rather than a precise survey of the room.}
@@ -27,11 +28,11 @@ These maps serve as a reference, not as a metric survey of the room. The drone's
 
 Without the obstacle, the SNR field rises smoothly toward the beacon. As the obstacle-free panels of Figures~\ref{fig:snr-field-150-noobs} and~\ref{fig:snr-field-170-noobs} show, each beacon's field climbs from the far side of the room to a clear peak near the beacon, which confirms that the navigable gradient the controller depends on is present in the real room.
 
-Placing the obstacle opens a region of low SNR behind it, as the with-obstacle panels of Figures~\ref{fig:snr-field-150-obs} and~\ref{fig:snr-field-170-obs} show. Where the box stands between the survey and the beacon, the modulated signal can no longer reach the photodiodes directly, so the recovered SNR drops and leaves a shadow in the field. This shadow is the real-room counterpart of the occlusion the simulation creates with its pillar. It is precisely the region in which the bearing becomes unreliable and the drone must navigate on the stored map instead, the situation the recovering phase of Chapter~\ref{chp:algorithm} handles. In these survey maps we draw the obstacle larger than the physical box, whose true size the flight plots of Figure~\ref{fig:obstacle-good} show later. We enlarge it not only in the plots but in the drone's flight code, to leave a margin against odometry drift during the slow raster. The box itself is never bigger. We expand only the footprint the drone treats as off-limits, so it stays clear of the real obstacle.
+Placing the obstacle opens a region of low SNR behind it, as the with-obstacle panels of Figures~\ref{fig:snr-field-150-obs} and~\ref{fig:snr-field-170-obs} show. Where the box stands between the survey and the beacon, the modulated signal can no longer reach the photodiodes directly, so the recovered SNR drops and leaves a shadow in the field. This shadow is the real-room counterpart of the occlusion the simulation creates with its pillar. It is precisely the region in which the bearing becomes unreliable and the drone must navigate on the stored map instead, the situation the recovering phase of Chapter~\ref{chp:algorithm} handles. In these survey maps we draw the obstacle larger than the physical box, whose true size the flight plots of Section~\ref{sec:obstacle-realflight} show later. We enlarge it not only in the plots but in the drone's flight code, to leave a margin against odometry drift during the slow raster. The box itself is never bigger. We expand only the footprint the drone treats as off-limits, so it stays clear of the real obstacle.
 
 The 170\,Hz field also appears to carry a slight dip near the 150\,Hz beacon, in a spot where the smooth fall-off alone would lead us to expect a somewhat higher SNR. We read this tentatively as an effect of the 150\,Hz beacon: where that beacon is bright it may begin to saturate the photodiodes, flattening their response and lowering the recovered SNR across all frequencies, the 170\,Hz one included. The dip is faint, and the survey cannot separate it cleanly from the ordinary fall-off with distance, so we note it only as a likely trace of the same close-range saturation that bounds the sensor's operating range, and a reminder that the field is clean only in the band where the photodiodes are neither starved nor saturated.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \subfigure[150\,Hz, no obstacle]{\includegraphics[width=\textwidth]{figures/real_data_gather_flights/150hz_lawnmower_no_obstacle.png}\label{fig:snr-field-150-noobs}}\\
     \subfigure[150\,Hz, with obstacle]{\includegraphics[width=\textwidth]{figures/real_data_gather_flights/150hz_lawnmower_with_obstacle.png}\label{fig:snr-field-150-obs}}
@@ -39,7 +40,7 @@ The 170\,Hz field also appears to carry a slight dip near the 150\,Hz beacon, in
     \label{fig:snr-field-150}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \subfigure[170\,Hz, no obstacle]{\includegraphics[width=\textwidth]{figures/real_data_gather_flights/170hz_lawnmower_no_obstacle.png}\label{fig:snr-field-170-noobs}}\\
     \subfigure[170\,Hz, with obstacle]{\includegraphics[width=\textwidth]{figures/real_data_gather_flights/170hz_lawnmower_with_obstacle.png}\label{fig:snr-field-170-obs}}
@@ -47,20 +48,23 @@ The 170\,Hz field also appears to carry a slight dip near the 150\,Hz beacon, in
     \label{fig:snr-field-170}
 \end{figure}
 
+\FloatBarrier
 \section{Obstacle Avoidance}
 
 \subsection{Simulation}
+\label{sec:obstacle-sim}
 
-With the SNR field confirmed navigable, we turn to the avoidance task itself. In simulation the fused controller solves the task that defeated both baselines of Chapter~\ref{chp:algorithm}. Flying the same scene, from the same start toward the same beacon as the bearing-only and gradient-only runs, it routes cleanly around the obstacle and reaches the beacon, as Figure~\ref{fig:fused-sim} shows. The controller begins on the bearing alone, while the map is still too sparse for a reliable gradient. Once the gradient becomes reliable, it blends the gradient into the heading and steers by the combined bearing-and-gradient direction. This blended heading curves the path around the pillar on its own, so the drone neither flies into the obstacle nor has to stop and search. The avoidance here comes from this fusion rather than from the recovering fallback, which this run never needs to enter, since the bearing remains valid throughout the approach. Where the bearing-only and gradient-only controllers failed in Figures~\ref{fig:bearing-fail} and~\ref{fig:gradient-fail}, the fused controller rounds the obstacle and arrives.
+With the SNR field confirmed navigable, we turn to the avoidance task itself. In simulation the fused controller solves the task that defeated both baselines of Chapter~\ref{chp:algorithm}. Flying the same scene, from the same start toward the same beacon as the bearing-only and gradient-only runs, it routes cleanly around the obstacle and reaches the beacon, as Figure~\ref{fig:fused-sim} shows. The controller begins on the bearing alone, while the map is still too sparse for a reliable gradient. Once the gradient becomes reliable, it blends the gradient into the heading and steers by the combined bearing-and-gradient direction. This blended heading curves the path around the pillar on its own, so the drone neither flies into the obstacle nor has to stop and search. The avoidance here comes from this fusion rather than from the recovering fallback, which this run never needs to enter, since the bearing remains valid throughout the approach. Where the bearing-only and gradient-only controllers failed in Section~\ref{sec:existing-methods-fall-short}, the fused controller rounds the obstacle and arrives.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{figures/fused_sim/blimp_trajectory_2d.png}
-    \caption{In simulation, the fused controller routes around the obstacle and reaches the beacon on the blended bearing-and-gradient heading, where the bearing-only and gradient-only controllers fail in Figures~\ref{fig:bearing-fail} and~\ref{fig:gradient-fail}.}
+    \caption{In simulation, the fused controller routes around the obstacle and reaches the beacon on the blended bearing-and-gradient heading, where the bearing-only and gradient-only controllers fail in Section~\ref{sec:existing-methods-fall-short}.}
     \label{fig:fused-sim}
 \end{figure}
 
 \subsection{Real-World Flight}
+\label{sec:obstacle-realflight}
 
 Success in simulation does not guarantee success in the real world. Real flight introduces disturbances that the simulation does not model: ambient light, electrical and motor noise on the photodiode signals, and drift in the drone's odometry. Each can degrade the bearing and the light map on which the controller depends. We therefore fly the obstacle mission on the CrazyFlie to confirm that the avoidance demonstrated in simulation also holds in flight. The drone takes off from its origin and heads for a single beacon, with the box set into the route a little to one side of the straight-line path.
 
@@ -70,7 +74,7 @@ In both flights the drone reaches the beacon, steering around the box rather tha
 
 In the first flight the beacon signal weakens enough that the controller falls back on the map, exercising the recovering phase that the simulation never needed. Figure~\ref{fig:obstacle-good} shows the result. The upper panel plots the path leaving the origin and steering past the box, drawn over the light map the drone builds as it flies, whose cells hold the SNR measured there. The lower panel tracks the controller's state and the overall SNR over time. The flight walks the state machine of Chapter~\ref{chp:algorithm} through searching, aligning, and approaching, and then, as the drone passes behind the obstacle, into recovering and back. As the drone moves behind the box, the beacon is occluded and the overall SNR drops sharply. The magnitude of the bearing estimate falls below its trust threshold, so the bearing no longer yields a usable heading. This is exactly the situation a purely reactive controller cannot handle: with no memory of the field it would have no direction left to follow. The stored map supplies one. Because the gradient fitted to the map still meets its reliability conditions, the state machine enters recovering and the drone continues on the gradient direction alone, climbing the stored field to move out of the obstacle's shadow. As soon as the bearing rises back above its trust threshold the controller returns to approaching, closes on the beacon, and dwells.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \subfigure[Flight path over the light map the drone built]{\includegraphics[width=0.85\textwidth]{figures/obstacle_dodging_real/one_waypoint_good_dodge_trajectory.png}}\\
     \subfigure[Controller state and overall SNR over time]{\includegraphics[width=0.85\textwidth]{figures/obstacle_dodging_real/one_waypoint_good_dodge_state_snr.png}}
@@ -80,7 +84,7 @@ In the first flight the beacon signal weakens enough that the controller falls b
 
 The second flight reaches the beacon without ever falling back on the map alone, and so represents the other operating regime. The difference between the two flights is geometric rather than a change in the controller: the first passes through more of the box's shadow, where the beacon is occluded and the bearing is lost, whereas the second skirts the shadow's edge. The drone therefore keeps a usable bearing throughout, so the controller stays in its approaching phase and never enters recovering. The blended bearing-and-gradient heading alone is enough to steer the path around the obstacle, as Figure~\ref{fig:obstacle-dodge} shows. Taken together, the two flights show the controller drawing on the map only as far as each situation requires: recovering on the gradient when the bearing drops below its trust threshold, and rounding the obstacle on the fused heading when it does not.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \subfigure[Flight path over the light map the drone built]{\includegraphics[width=0.85\textwidth]{figures/obstacle_dodging_real/one_waypoint_dodges_obstacle_trajectory.png}}\\
     \subfigure[Controller state and overall SNR over time]{\includegraphics[width=0.85\textwidth]{figures/obstacle_dodging_real/one_waypoint_dodges_obstacle_state_snr.png}}
@@ -95,6 +99,7 @@ Our own validation spans the Webots simulation and the CrazyFlie~2.1, but the co
 The blimp flights also show a higher SNR than we obtain on the CrazyFlie. The photodiode board is the same and sits in the same place on both airframes, so the difference comes from the platform rather than the sensor. Because the helium balloon keeps the blimp aloft, its motors run only when it moves and at far lower power, whereas the CrazyFlie must drive its motors continuously to stay airborne.
 
 \subsection{Motor Noise on the CrazyFlie}
+\label{sec:motor-noise}
 
 The higher SNR on the blimp points to the motors as the likely cause, so we measure their effect directly on the CrazyFlie. We hold the board at a fixed pose and record the SNR while running an increasing number of its motors, both with the hardware anti-alias filter and without. Table~\ref{tab:motor-noise} and Figure~\ref{fig:motor-noise} show the result. The SNR falls steadily as more motors spin. With the hardware filter in place it drops from about 61 with all motors off to about 25 at full throttle, which confirms the motors are the dominant disturbance.
 
@@ -102,7 +107,7 @@ A motor couples noise into the board in two ways: it draws current that interfer
 
 The motors are therefore the main reason the CrazyFlie records a lower SNR than the blimp: because the blimp drives its motors far less, it avoids most of the SNR loss they cause.
 
-\begin{table}[ht]
+\begin{table}[htbp]
     \centering
     \caption{Overall SNR on the CrazyFlie at a fixed pose while running an increasing number of its motors, with the hardware anti-alias filter left unpopulated and with it soldered. Each cell is the mean $\pm$ standard deviation. The last row repeats the four-motor case with the motors moved onto extension wires, mechanically isolating them from the board.}
     \label{tab:motor-noise}
@@ -121,7 +126,7 @@ The motors are therefore the main reason the CrazyFlie records a lower SNR than 
     \end{tabular}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/motor_noise.png}
     \caption{Overall SNR on the CrazyFlie at a fixed pose. The left panel shows the SNR as the number of spinning motors increases, for the board with the hardware anti-alias filter left unpopulated (bare pads) and with it soldered; the SNR falls as more motors spin. The right panel is the vibration-isolation test at four motors. Here BA denotes the bare board with no hardware filter and HW the board with the hardware filter soldered. For each, the solid bars are the close-mounted motors and the hatched bars the same motors moved onto extension wires, which isolates their vibration from the board while leaving them electrically connected.}
