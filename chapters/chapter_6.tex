@@ -96,6 +96,7 @@ The second flight reaches the beacon without entering the \emph{recovering} stat
 \end{figure}
 
 \section{Generalisation to a Blimp Platform}
+\label{sec:blimp-generalisation}
 
 Our validation spans both the Webots simulation and the Crazyflie~2.1, but the contribution is not intended to be tied to a single platform. We therefore also demonstrate that the sensing system can be deployed on a different airframe. This validation is carried out in collaboration with Huang et al.~\cite{huang2026lta}, who developed the lighter-than-air blimp and the Webots simulation used in this thesis. The blimp is a closely related micro-drone platform, supported by a helium balloon and driven by a different motor layout. We mount the same light-sensing board and run the same controller proposed in this thesis on their blimp platform, and confirm that it can reach several modulated beacons in sequence and avoid obstacles, as it does on the Crazyflie quadrotor. The same board and algorithm therefore operate across two different airframes, demonstrating that the method proposed in this thesis depends primarily on the light-sensing and control strategy rather than on the specific drone platform.
 

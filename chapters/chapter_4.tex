@@ -4,6 +4,7 @@
 In this chapter, we detail how the light intensity signal reading from the photodiode is being processed. Unlike the simple setting we used in simulation, where we directly measure the light intensity changes, in the real-world we can not purely estimate the light source based simply on the light intensity readings. This is because in the real-world environment there will be a lot of other types of light present in the environment changing the light intensity, such as sunlight or unmodulated ceiling light, these lights increase the measured value from the photodiodes while they do not provide meaningful data for the direction of the target source. Moreover, each photodiode delivers a single noisy voltage in which the target beacon information is buried among electrical interference, and mechanical vibration. This chapter develops the signal processing pipeline that recovers the target beacon signal from that voltage and reports, alongside each reading, a signal-to-noise ratio that quantifies how far the reading can be trusted. We first describe the pipeline stage by stage, from the analogue anti-aliasing filter through the frequency analysis to the per-channel smoothing. We then validate the signal processing pipeline in flight, isolating the effect that each stage has on the final reported signal-to-noise ratio.Finally, we measure the effect ambient light has on the described pipeline, and show that it negatively influences the reported signal-to-noise ratio.
 
 \section{From Intensity to SNR}
+\label{sec:intensity-to-snr}
 
 In simulation the per-sensor light signal requires no recovery. As Section~\ref{sec:simulation} describes, the drone directly read $S_n$ where it only represents the light intensity value. However, the real platform cannot perform navigation simply based on the light intensity value. On the drone each photodiode reports a single voltage in which the target beacon, the ambient room lighting, sunlight through a window, and reflections off the walls and floor are summed together. This raw voltage is not meaningless, but on its own it is an unreliable navigation cue, because it cannot separate the light signal from the target beacon with the background noises.
 
@@ -110,6 +111,7 @@ The smoothing improves the magnitude our algorithms from Chapter~\ref{chp:algori
 
 
 \section{Filter Validation}
+\label{sec:filter-validation}
 
 We now test what each stage of the signal processing pipeline of the previous section contributes in flight, and whether each is justified. We hold the drone at a fixed positions, 95\,cm from a single 150\,Hz beacon, so that the true signal is constant and any variation recorded over time is the noise and jitter that the filters are meant to remove. From each held run we take two numbers: the mean SNR, which reflects the signal level, and the standard deviation of the SNR, which reflects its jitter.
 

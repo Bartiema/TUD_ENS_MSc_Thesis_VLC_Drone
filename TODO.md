@@ -10,6 +10,12 @@
   with a per-input confidence, instead of the current fixed, equal-weight gated
   hand-off (moved out of Ch3 §Control Output, 2026-06-21).
 
+## Spotted in Ch1 (`introduction.tex`) while revising Ch8 conclusion (2026-06-28)
+- [ ] **Factual error on `revise-ch1-introduction`:** the intro says of Huang et al.'s
+      two methods that "both were evaluated only in simulation." This is not accurate —
+      Harry flew the base controllers in real open spaces. Fix on the Ch1 branch so it
+      agrees with the conclusion, which no longer makes the "only in simulation" claim.
+
 ## Spotted in Ch3 (`chapter_2.tex`) while revising Ch5 (2026-06-23)
 Minor issues noticed but NOT changed, since Ch3 is already at standard. Added
 `\label{sec:multibeacon-separation}` to §Multi-Beacon Traversal so Ch5 can
