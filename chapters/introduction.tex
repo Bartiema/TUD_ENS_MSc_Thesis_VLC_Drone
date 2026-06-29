@@ -1,4 +1,92 @@
 \chapter{Introduction}
 \label{chp:introduction}
 
-Introduction goes here.
+This chapter introduces the problem addressed in this thesis and the methods developed to solve it. We begin by examining why indoor navigation is difficult for micro-drones, whose weight, size, and power budgets tightly constrain the sensing and computation they can carry. We then discuss visible-light sensing as a promising direction for indoor navigation, highlighting how existing lighting infrastructure can provide guidance with minimal changes to the environment. We next identify the limitations that remain in related work, which motivate the research questions and contributions of this thesis. Finally, we outline the organisation of the remaining chapters.
+
+\section{Motivation \& Problem Statement}
+
+Small unmanned aircraft are increasingly used for tasks that once required human operators, including structural inspection, environmental monitoring, and warehouse inventory tracking~\cite{floreano2015drones}. Many of these applications take place indoors, where demand continues to grow. The indoor inspection-drone market alone is projected to expand from USD~254~million in 2024 to USD~614~million by 2032~\cite{intelmarket2026}. Yet indoor operation remains difficult because of the GPS, the positioning system most commonly used by outdoor drones, where the GPS signals become unreliable once a drone moves inside. Roofs and walls block satellite signals, while surrounding structures can also create severe interference in dense urban areas. As a result, GPS-based positioning can become too weak or unstable to support reliable navigation~\cite{zafari2019indoor}.
+
+Micro-drones offer a promising platform for a lot of indoor application. Their small size and low mass make them attractive in cluttered spaces such as warehouses and greenhouses, where a larger drone could damage shelves, cargo, pipes, glass panels, or plants in the event of a collision. A smaller drone reduces this risk and can operate in tighter spaces. However, the same compact form factor also creates the central design constraint of this thesis. A micro-drone cannot carry heavy sensors, large batteries, or powerful onboard computers, so its navigation system must remain lightweight, low-power, and simple to deploy. Therefore, the central problem in this thesis is how can a micro-drone navigate reliably in GPS-denied indoor environments, such as warehouses or greenhouses, while operating under strict weight, size, and power constraints and requiring minimal changes to the environment.
+
+Visible light provides a promising solution for our target scenario, since indoor spaces are generally already equipped with lighting infrastructure~\cite{zhuang2018vlp}. The idea of visible-light positioning is to use ordinary lamps as signal transmitters that provide information for the drone to estimate its position. A simple switching circuit can be attached to a lamp to modulate the light on and off faster than the human eye can perceive. In this way, the lamp continues to illuminate the room steadily for people while also carrying a signal that the drone can detect~\cite{pathak2015vlc}. The drone then needs to carry only a small light sensor, whose mass and power draw are well within a micro-drone's budget. However, many visible-light positioning systems still require the lamp positions to be measured precisely before the first flight. For example, the work by Hernández et al.\cite{firefly2023vlc}, requires densely installed lights with known positions, which increases the deployment effort before the drone can navigate on the light signals.
+
+Light-based navigation system has a central trade-off between the position information it provides and the lighting infrastructure it requires. Visible-light positioning systems can recover a drone's position with centimetre-level accuracy~\cite{kuo2014luxapose}, but they typically rely on multiple modulated ceiling lights whose locations are known in advance. This turns the lighting layout itself into part of the navigation system, making deployment costly in spaces where light infrastrctures are sparse, irregular, or difficult to survey, i.e. on street where the lamps are sparely lits or living room where there is usually only single light. Using a single light source places a much smaller requirment to the target deployed environments. One light cannot determine the drone's full position, but it can provide a direction for the drone to follow toward the beacon in open space.
+
+Instead of relying on dense lighting infrastructure, Huang et al.~\cite{huang2026lta} first demonstrates a light-guided navigation paradigm that uses a single modulated beacon without requiring a pre-surveyed grid of lamp positions. Their original approach develops two source-seeking methods that this thesis builds on. The first estimates the bearing toward the beacon using multiple photodiodes arranged in a ring structure. The second reduces the sensing hardware to a single photodiode, estimating the beacon direction from how the measured light intensity changes as the drone moves. Both methods are designed around the same baseline setting: one active modulated lamp and a drone flying in an open indoor space. This baseline leaves two limitations for more realistic missions. First, tracking one beacon at a time does not by itself demonstrate that the drone can distinguish and visit several beacons in sequence. Second, open-space source seeking does not guarantee success flight in cluttered environments, where obstacles may block the light signal or cause the drone to collide. This thesis addresses these two limitations by extending their orginal methods.
+
+This thesis aims to guide a weight-, size-, and power-constrained micro-drone to its targets using only onboard light sensing, as illustrated in Figure~\ref{fig:task-concept}. It pursues two goals. The first is to reach several light beacons in succession, rather than only a single beacon. The second is to reach a beacon even when an obstacle blocks the direct path to it. Achieving this on a micro-drone is challenging because a platform weighing only a few tens of grams has very limited payload, volume, and power. It cannot rely on the heavy sensors or the computational resources available to larger drones, and must instead draw everything it needs to navigate from the small, low-power light sensing it can carry.
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[>=Latex, font=\small]
+        % --- modulated light beacons ---
+        \foreach \pos in {(2.3,3.0),(6.6,1.0),(8.0,3.0)} {
+            \fill[black] \pos circle (2.5pt);
+            \foreach \a in {0,45,...,315} { \draw[thin, gray!70] \pos -- ++(\a:0.28); }
+        }
+        \node[above=5pt] at (2.3,3.0) {beacon $f_1$};
+        \node[below=5pt] at (6.6,1.0) {beacon $f_2$};
+        \node[above=5pt] at (8.0,3.0) {beacon $f_3$};
+
+        % --- obstacle, on the direct line from f_1 to f_2 ---
+        \fill[gray!35] (4.4,0.3) rectangle (5.2,2.0);
+        \draw (4.4,0.3) rectangle (5.2,2.0);
+        \node[below=3pt, align=center] at (4.8,0.3) {obstacle};
+
+        % --- blocked direct line of sight to f_2 ---
+        \draw[dotted, gray] (2.3,3.0) -- (6.6,1.0);
+        \draw[thick] (4.62,1.69) -- (4.98,2.00);
+        \draw[thick] (4.62,2.00) -- (4.98,1.69);
+        \node[align=center, font=\footnotesize] at (3.5,1.0) {direct line\\of sight\\blocked};
+
+        % --- micro-drone at the start, top-down quadrotor ---
+        \begin{scope}[shift={(0.4,1.0)}]
+            \draw[thick] (-0.22,-0.22) -- (0.22,0.22);
+            \draw[thick] (-0.22,0.22) -- (0.22,-0.22);
+            \foreach \c in {(-0.22,-0.22),(0.22,0.22),(-0.22,0.22),(0.22,-0.22)} {
+                \draw[thick, fill=white] \c circle (0.12);
+            }
+        \end{scope}
+        \node[below=4pt] at (0.4,1.0) {micro-drone};
+
+        % --- example mission path, detouring around the obstacle ---
+        \draw[->, dashed, thick]
+            (0.7,1.1) to[out=40,in=200] (2.3,2.7)
+            (2.3,2.7) to[out=10,in=160] (4.8,2.55)
+            (4.8,2.55) to[out=-20,in=110] (6.6,1.3)
+            (6.6,1.3) to[out=55,in=215] (7.8,2.7);
+    \end{tikzpicture}
+    \caption{An illustration of the navigation task this thesis addresses. This is a schematic example, not a recorded flight path or the exact scene used in the experiments. A micro-drone must visit several light beacons in turn, distinguishing them by their modulation frequencies $f_1$, $f_2$, and $f_3$. An obstacle blocks the direct line of sight to beacon $f_2$, so steering toward the light alone is not enough to reach it. The drone must instead detour around the obstacle, which requires it to remember the light field rather than react only to the light it currently senses. The experiments in Chapters~\ref{chp:multibeacon} and~\ref{chp:obstacle} test the multi-beacon and obstacle cases separately.}
+    \label{fig:task-concept}
+\end{figure}
+
+\section{Research Objectives}
+
+This gap raises three questions, which this thesis addresses in turn:
+
+\begin{enumerate}
+    \item \label{rq:feasibility} Can a weight-, size-, and power-constrained drone carry the necessary light sensing on board and recover a reliable beacon signal in flight?
+    \item \label{rq:multibeacon} Can a weight-, size-, and power-constrained drone then navigate to several distinct light beacons in turn?
+    \item \label{rq:obstacle} Can a weight-, size-, and power-constrained drone navigate around an obstacle that blocks its line of sight to a beacon?
+\end{enumerate}
+
+The first question is the foundation of this work: whether a board within the drone's mass budget can recover a reliable beacon signal in flight at all. The second and third are the two goals that the foundation makes possible, and that the prior single-beacon methods could not reach: visiting several beacons in turn, and routing around an obstacle that blocks the path to one of them. Answering all three requires both a sensing platform light enough to fly and a controller that can act on what that platform is able to sense.
+
+\section{Contributions}
+
+To answer the research questions laid out in the previous section, this thesis makes four contributions.
+
+First, it presents a custom light-sensing board, small and light enough to fly on a micro-drone, that gives the drone the directional light sensing its navigation depends on.
+
+Second, it develops a fused navigation controller, the core technical contribution of this thesis. It combines two directions: the bearing toward a visible beacon, and a gradient that the drone follows through the surrounding light field. Where the prior approach sensed the light one direction at a time, the controller widens the drone's field of view to take in the whole light field at once.
+
+Third, it delivers the two navigation capabilities the thesis set out to achieve, both made possible by this controller. The first is multi-beacon traversal: the drone tells the beacons apart and visits them in turn, rather than reaching only one. The second is obstacle avoidance: by remembering the light field it has already passed through, the drone routes around an obstacle that blocks its view of the beacon, instead of stalling or colliding when the direct light is lost.
+
+Finally, it validates the complete system in a Webots simulation and in real flight. The drone reaches several beacons in turn, and routes around an obstacle that blocks its line of sight to a beacon.
+
+This thesis builds directly on the work of Huang et al.~\cite{huang2026lta}, which provides the single-beacon bearing and gradient methods and the Webots simulator. The fused controller, the wider-field light sensing, the multi-beacon and obstacle-avoidance navigation, the sensing board, and the validation in real flight are the contributions of this thesis.
+
+\section{Thesis Overview}
+
+The remainder of this thesis is organised as follows. Chapter~\ref{chp:background} reviews how drones navigate GPS-denied indoor spaces, motivates the choice of visible light, and introduces the prior algorithms of Huang et al. Chapter~\ref{chp:algorithm} analyses why those methods fall short under multiple beacons and occlusion, and designs the fused controller that overcomes them. Chapter~\ref{chp:hardware} presents the photodiode board and the payload, power, and size budget it must meet. Chapter~\ref{chp:realworld} describes the real-world implementation, including the signal pipeline that recovers each beacon from the noisy measured light. Chapter~\ref{chp:multibeacon} reports the multi-beacon experiments, and Chapter~\ref{chp:obstacle} the obstacle-avoidance experiments, in both simulation and real flight. Chapter~\ref{chp:conclusions} draws the conclusions, and Chapter~\ref{chp:futurework} sets out directions for future work.

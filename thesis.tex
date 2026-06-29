@@ -22,7 +22,7 @@
 % OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 % SOFTWARE.
 
-\documentclass[10pt,twoside,a4paper,openright]{report}
+\documentclass[10pt,twoside,a4paper]{report}
 
 % add new packages here
 
@@ -44,6 +44,7 @@
 \usepackage{epstopdf}
 \usepackage{rotating}
 \usepackage{subfigure}
+\usepackage{placeins} % provides \FloatBarrier to keep figures near their text
 
 % Make captions distinguishable
 \usepackage[textfont=bf]{caption}
@@ -53,7 +54,14 @@
 
 % for url's use "\url{http://www.google.com/}"
 \usepackage{url}
-\usepackage[plainpages=false]{hyperref} 
+\usepackage[plainpages=false]{hyperref}
+
+% Placeholder boxes for figures still to be produced (\missingfigure)
+\usepackage{todonotes}
+
+% TikZ for the controller block diagram and the navigation state machine
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, angles, quotes}
 
 % Information that will be filled in at various points in the report
 \newcommand{\reportTitle}{Drawn to the Light: Autonomous Optical Navigation for Micro-Drones}
@@ -88,9 +96,11 @@ Harry Huang & Delft University of Technology \\
 % prof.\,dr.\,Koen Langendoen (chairman) & Delft University of Technology \\ 
 % dr.\,Przemys{\l}aw Pawe{\l}czak & Delft University of Technology \\ 
 
-\newcommand{\reportAbstract}{WRITE YOUR ABSTRACT HERE}
+\newcommand{\reportAbstract}{Small drones increasingly operate indoors, where GPS is unavailable and the heavier sensors normally used for indoor positioning exceed a micro-drone's weight, size, and power budget. Visible light is a practical alternative, because the spaces a drone operates in are already lit. An ordinary lamp can be modulated to act as a navigation beacon, while the drone carries only a small light sensor to detect it. Prior work by Huang et al.\ navigates a micro-drone toward a single such beacon, recovering the direction of the light from a ring of photodiodes. That work was demonstrated only in simulation, and it keeps no record of the light field. It therefore cannot distinguish one beacon from another, nor route around an obstacle that blocks the light.
 
-\newcommand{\reportKeywords}{LIST YOUR KEYWORDS HERE}
+This thesis gives a weight-, size-, and power-constrained micro-drone the navigation those methods lacked, using only on-board light sensing. We design a fused controller that combines two directions. The first is the bearing toward the beacon, read from a ring of photodiodes. The second is a gradient, which the drone estimates from a map of the light field that it builds as it flies. Where the prior method sensed the light one direction at a time, the controller widens the drone's field of view to take in the whole light field at once. The sensing runs on a custom light-sensing board that fits well within a micro-drone's payload budget. A signal pipeline on the drone then recovers each beacon from the board's noisy output through a frequency analysis, and reports a confidence measure for each reading. We validate the approach in a Webots simulation and in real flight. The drone reaches several modulated beacons in turn, and routes around an obstacle, using its stored map of the light field when the obstacle blocks the beacon.}
+
+\newcommand{\reportKeywords}{visible light communication; light-seeking navigation; GPS-denied indoor navigation; micro-drone; multi-target navigation; obstacle avoidance; bearing angle estimation; gradient-based source seeking; photodiode array}
 
 % Did the thesis lead to a paper? 
 % e.g. The work presented in this thesis has lead to a paper which has been submitted to a conference for publication, pending peer-review
@@ -138,12 +148,6 @@ Harry Huang & Delft University of Technology \\
 % Empty page: page iv
 \cleardoublepage
 
-% (Optional) Include quotation: page v (uncomment if needed)
-% \input{chapters/quotation}
-
-% Empty page: page vi
-% \cleardoublepage
-
 % Create preface: page v
 \input{chapters/preface}
 
@@ -163,9 +167,11 @@ Harry Huang & Delft University of Technology \\
 
 % Create chapters
 \input{chapters/chapter_1}
-%\input{chapters/chapter_2}
-% ...
-%\nput{chapters/chapter_X}
+\input{chapters/chapter_2}
+\input{chapters/chapter_3}
+\input{chapters/chapter_4}
+\input{chapters/chapter_5}
+\input{chapters/chapter_6}
 
 % Create conclusions
 \input{chapters/conclusions}
