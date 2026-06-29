@@ -15,10 +15,14 @@ Usage:
     python scripts/light_map_figure.py [csv] [out.png]
 """
 
+import os
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst
 
 DEFAULT_CSV = "data/gradient_analysis/precomputed_map.csv"
 DEFAULT_OUT = "figures/gradient_analysis/light_map.png"
@@ -37,15 +41,17 @@ def main():
     df = pd.read_csv(csv)
     df = df[df["total_light"] > 0]          # drop saturation/shadow holes
 
-    fig, ax = plt.subplots(figsize=(7.5, 5.5))
+    # Included at 0.72\textwidth -> 3.6 in. Scale 1: the PNG is the page result.
+    fst.apply(3.6, frac=0.72, tick=8, label=9, title=9, legend=8)
+    fig, ax = plt.subplots(figsize=(3.6, 3.4))
 
     cf = ax.tricontourf(df["x"], df["y"], df["total_light"],
                         levels=20, cmap="viridis")
-    cbar = fig.colorbar(cf, ax=ax, shrink=0.85)
+    cbar = fig.colorbar(cf, ax=ax, fraction=0.046, pad=0.03)
     cbar.set_label("Recorded light strength")
 
     # Light source.
-    ax.scatter([LIGHT_X], [LIGHT_Y], marker="*", s=320, c="gold",
+    ax.scatter([LIGHT_X], [LIGHT_Y], marker="*", s=90, c="gold",
                edgecolors="black", linewidths=0.8, zorder=5, label="Light source")
 
     # Obstacle (physical pillar) and the clearance circle the drone keeps.
@@ -60,10 +66,9 @@ def main():
     ax.set_ylabel("Y position (m)")
     ax.set_title("Built light-intensity map (top view)")
     ax.set_aspect("equal")
-    ax.legend(loc="lower left", fontsize=9)
+    ax.legend(loc="upper left", framealpha=0.85)
     fig.tight_layout()
-    fig.savefig(out, dpi=300, bbox_inches="tight")
-    print(f"Saved -> {out}")
+    fst.save(fig, out)
 
 
 if __name__ == "__main__":

@@ -52,6 +52,7 @@ are stored as int16 ×100 and divided back to float automatically.
 
 import argparse
 import re
+import os
 import sys
 from pathlib import Path
 
@@ -61,6 +62,13 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst
+
+# Default on-page width fraction (overridden by --page-frac). Figures are drawn
+# at scale 1 (figsize width = frac * textwidth) so saved PNGs are page-accurate.
+PAGE_FRAC = 1.0
 
 # ── Heatmap settings ─────────────────────────────────────────────────────────
 SNR_MAP_BIN_M        = 0.05   # default bin size (5 cm — matches firmware map grid)
@@ -252,7 +260,8 @@ def build_active_panels(df: pd.DataFrame, panel_keys=None):
 
 # ── Time-series figure ────────────────────────────────────────────────────────
 
-def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None) -> 'plt.Figure | None':
+def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None,
+                    frac: float = None) -> 'plt.Figure | None':
     """Build the time-series panel figure. Returns None if no data.
 
     panel_keys: optional iterable of PANELS 'key' values to include
@@ -268,17 +277,20 @@ def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None) -> 'plt.Figur
     t = df['_t']
     n = len(active)
 
-    fig, ax_arr = plt.subplots(n, 1, figsize=(14, 3.2 * n), sharex=True,
-                               layout='constrained')
+    frac = frac or PAGE_FRAC
+    fst.apply(frac * fst.TEXTWIDTH_IN, frac, tick=8, label=9, title=9,
+              legend=8, suptitle=10)
+    fig, ax_arr = plt.subplots(n, 1, figsize=(frac * fst.TEXTWIDTH_IN, 1.35 * n + 0.4),
+                               sharex=True, layout='constrained')
     axes = [ax_arr] if n == 1 else list(ax_arr)
     if title:
-        fig.suptitle(title, fontsize=13, fontweight='bold')
+        fig.suptitle(title, fontweight='bold')
 
     grad_mask = gradient_accept_mask(df)
 
     for ax, panel in zip(axes, active):
-        ax.set_title(panel['title'], fontsize=10, loc='left')
-        ax.set_ylabel(panel['ylabel'], fontsize=9)
+        ax.set_title(panel['title'], loc='left')
+        ax.set_ylabel(panel['ylabel'])
         ax.grid(True, alpha=0.3)
 
         grad_accept = panel.get('gradient_accept')
@@ -314,22 +326,22 @@ def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None) -> 'plt.Figur
             fl = [yl[yv.index(v)] for v in fv]
             if fv:
                 ax.set_yticks(fv)
-                ax.set_yticklabels(fl, fontsize=8)
+                ax.set_yticklabels(fl, fontsize=fst.pt(8))
 
         for tx, wp_new in transitions:
             ax.axvline(tx, color='black', lw=0.8, linestyle=':', alpha=0.5)
 
         if len(panel['series']) > 1 or panel.get('gradient_accept'):
-            ax.legend(fontsize=8, loc='upper right', framealpha=0.7)
+            ax.legend(loc='upper right', framealpha=0.7)
 
     if transitions:
         ax0 = axes[0]
         for tx, wp_new in transitions:
             ax0.annotate(f'WP {int(wp_new)}', xy=(tx, ax0.get_ylim()[1]),
-                         xytext=(3, -14), textcoords='offset points',
-                         fontsize=7, color='black', alpha=0.8)
+                         xytext=(3, -12), textcoords='offset points',
+                         fontsize=fst.pt(7), color='black', alpha=0.8)
 
-    axes[-1].set_xlabel('Time (s)', fontsize=9)
+    axes[-1].set_xlabel('Time (s)')
     return fig
 
 
@@ -452,22 +464,27 @@ def _build_gradient_grid(x, y, grad_ang_deg, accepted, x_edges, y_edges):
 def _draw_wp_heatmap(ax, seg: pd.DataFrame, bin_m: float,
                      norm: mcolors.Normalize, cmap, wp_label: str,
                      show_gradient: bool = True, gradient_stride: int = 4,
-                     obstacles: list = None):
+                     obstacles: list = None, show_takeoff: bool = True):
     """Draw one waypoint's SNR heatmap into ax. Returns the pcolormesh artist."""
     x   = seg['stateEstimate.x'].to_numpy(dtype=float)
     y   = seg['stateEstimate.y'].to_numpy(dtype=float)
     snr = seg['nav.snr'].to_numpy(dtype=float)
 
     grid, x_edges, y_edges = _build_snr_grid(x, y, snr, bin_m)
+    # Dark background so the gap between takeoff and a far-off beacon reads as
+    # unvisited map area rather than an empty white void.
+    ax.set_facecolor('#1a1a2e')
     mesh = ax.pcolormesh(x_edges, y_edges, grid, cmap=cmap, shading='flat',
                          norm=norm)
 
     # Flight path
     ax.plot(x, y, color='white', lw=0.8, alpha=0.5)
 
-    # Takeoff cross (0, 0) — meaningful for WP 0; shown on all for reference
-    ax.plot(0, 0, marker='+', markersize=12, markeredgewidth=2,
-            color='cyan', zorder=5)
+    # Takeoff cross (0, 0) — shown on every waypoint so the full flight path can
+    # be placed relative to the origin.
+    if show_takeoff:
+        ax.plot(0, 0, marker='+', markersize=7, markeredgewidth=1.4,
+                color='cyan', zorder=5)
 
     # ── Gradient angle overlay ────────────────────────────────────────────────
     if show_gradient and 'nav.gradAng' in seg.columns:
@@ -509,12 +526,14 @@ def _draw_wp_heatmap(ax, seg: pd.DataFrame, bin_m: float,
             label='obstacle' if i == 0 else '_nolegend_')
         ax.add_patch(rect)
         ax.text(cx, cy, f'{w*100:.0f}×{d*100:.0f} cm',
-                ha='center', va='center', fontsize=7, color='white', zorder=9)
+                ha='center', va='center', fontsize=fst.pt(7), color='white', zorder=9)
 
-    ax.set_title(wp_label, fontsize=10, fontweight='bold')
-    ax.set_xlabel('x  (m)', fontsize=9)
-    ax.set_ylabel('y  (m)', fontsize=9)
-    ax.set_aspect('equal')
+    ax.set_title(wp_label, fontweight='bold')
+    ax.set_xlabel('x  (m)')
+    ax.set_ylabel('y  (m)')
+    # 'box' shrinks the axes box to the data's aspect instead of padding the
+    # data limits with empty space (waypoints have very different shapes).
+    ax.set_aspect('equal', adjustable='box')
     ax.grid(True, color='white', alpha=0.08, linewidth=0.4)
     return mesh
 
@@ -523,7 +542,8 @@ def plot_snr_map(df: pd.DataFrame, title: str,
                  bin_m: float = SNR_MAP_BIN_M,
                  show_gradient: bool = True,
                  gradient_stride: int = 4,
-                 obstacles: list = None) -> 'plt.Figure | None':
+                 obstacles: list = None,
+                 frac: float = None) -> 'plt.Figure | None':
     """
     Build the 2-D SNR heatmap figure.
     When wpNav.wpIdx is present, one subplot is drawn per waypoint traversal
@@ -553,11 +573,24 @@ def plot_snr_map(df: pd.DataFrame, title: str,
         segments = [(None, data)]
 
     n_wp = len(segments)
-    ncols = min(n_wp, 3)
+    # At most 2 columns so each map keeps room to breathe (3 waypoints become a
+    # 2-top / 1-bottom grid rather than three cramped panels in a row).
+    ncols = min(n_wp, 2)
     nrows = (n_wp + ncols - 1) // ncols
 
+    frac = frac or PAGE_FRAC
+    fst.apply(frac * fst.TEXTWIDTH_IN, frac, tick=8, label=9, title=9,
+              legend=8, suptitle=10)
+    fig_w = frac * fst.TEXTWIDTH_IN
+    # Size the figure height to the data's own aspect so the equal-aspect maps
+    # fill the panel instead of floating in dead space.
+    _xr = data['stateEstimate.x']
+    _yr = data['stateEstimate.y']
+    _aspect = max(_yr.max() - _yr.min(), 0.1) / max(_xr.max() - _xr.min(), 0.1)
+    _aspect = min(max(_aspect, 0.35), 2.2)
+    fig_h = (fig_w / ncols) * _aspect * nrows * 0.82 + 1.0
     fig, axes = plt.subplots(nrows, ncols,
-                             figsize=(6 * ncols, 6 * nrows),
+                             figsize=(fig_w, fig_h),
                              layout='constrained',
                              squeeze=False)
 
@@ -577,14 +610,16 @@ def plot_snr_map(df: pd.DataFrame, title: str,
     # Single shared colourbar on the right of the whole figure
     if last_mesh is not None:
         fig.colorbar(last_mesh, ax=axes, pad=0.02, label='SNR (max per bin)',
-                     shrink=0.6)
+                     shrink=0.85)
 
-    # Gradient legend (only when overlay is active and column present)
+    # Gradient legend (only when overlay is active and column present).
+    # Placed just below the panels (outside the axes) so it never overlaps the
+    # x-axis label of the bottom row.
     if show_gradient and 'nav.gradAng' in data.columns:
         acc_patch = mpatches.Patch(color='#44ee88', alpha=0.9, label='gradient (accepted)')
         rej_patch = mpatches.Patch(color='#aaaaaa', alpha=0.6, label='gradient (rejected)')
-        fig.legend(handles=[acc_patch, rej_patch], loc='lower center',
-                   ncol=2, fontsize=9, framealpha=0.8, bbox_to_anchor=(0.5, 0.0))
+        fig.legend(handles=[acc_patch, rej_patch], loc='outside lower center',
+                   ncol=2, framealpha=0.8)
 
     ts_str = ''
     if 'timestamp_ms' in df.columns:
@@ -592,7 +627,7 @@ def plot_snr_map(df: pd.DataFrame, title: str,
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
     if title:
         fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                     fontsize=11, fontweight='bold')
+                     fontweight='bold')
 
     return fig
 
@@ -618,7 +653,8 @@ def plot_survey_map(df: pd.DataFrame, title: str,
                     bin_m: float = SNR_MAP_BIN_M,
                     lights: list = None,
                     sigma: float = 3.0,
-                    obstacles: list = None) -> 'plt.Figure | None':
+                    obstacles: list = None,
+                    frac: float = None) -> 'plt.Figure | None':
     """
     Side-by-side survey heatmap:
       Left  — raw mean-per-bin with flight path overlaid
@@ -663,31 +699,35 @@ def plot_survey_map(df: pd.DataFrame, title: str,
     norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
     extent = [x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]]
 
+    frac = frac or PAGE_FRAC
+    fst.apply(frac * fst.TEXTWIDTH_IN, frac, tick=8, label=9, title=9,
+              legend=8, suptitle=10)
+    fig_w = frac * fst.TEXTWIDTH_IN
     fig, (ax_raw, ax_smooth) = plt.subplots(
-        1, 2, figsize=(15, 6), layout='constrained')
+        1, 2, figsize=(fig_w, fig_w * 6 / 15 + 0.3), layout='constrained')
 
     # ── Left: raw ────────────────────────────────────────────────────────────
     ax_raw.imshow(grid_raw, origin='lower', extent=extent,
                   cmap=cmap, norm=norm, interpolation='nearest', aspect='equal')
     ax_raw.plot(x_all, y_all, color='white', lw=0.6, alpha=0.5, label='flight path')
-    ax_raw.set_title('Raw  (mean per bin)', fontsize=11)
+    ax_raw.set_title('Raw  (mean per bin)')
 
     # ── Right: smoothed ───────────────────────────────────────────────────────
     im = ax_smooth.imshow(grid_smooth, origin='lower', extent=extent,
                           cmap=cmap, norm=norm, interpolation='nearest', aspect='equal')
     sigma_str = f'σ={sigma} bins' if sigma > 0 else 'no smoothing'
-    ax_smooth.set_title(f'Smoothed  ({sigma_str})', fontsize=11)
+    ax_smooth.set_title(f'Smoothed  ({sigma_str})')
 
     # Shared colourbar on the right
     fig.colorbar(im, ax=ax_smooth, label='SNR (mean per bin)')
 
     # ── Decorations on both axes ──────────────────────────────────────────────
     for ax in (ax_raw, ax_smooth):
-        ax.plot(0, 0, marker='+', markersize=14, markeredgewidth=2,
+        ax.plot(0, 0, marker='+', markersize=7, markeredgewidth=1.4,
                 color='cyan', zorder=5, label='takeoff (0, 0)')
 
         for lx, ly in (lights or []):
-            ax.plot(lx, ly, marker='*', markersize=22, markeredgewidth=1.5,
+            ax.plot(lx, ly, marker='*', markersize=11, markeredgewidth=1.0,
                     color='yellow', markeredgecolor='darkorange', zorder=10,
                     label=f'light  ({lx:.2f}, {ly:.2f}) m')
 
@@ -699,12 +739,18 @@ def plot_survey_map(df: pd.DataFrame, title: str,
                 label='obstacle' if i == 0 else '_nolegend_')
             ax.add_patch(rect)
             ax.text(cx, cy, f'{w*100:.0f}×{d*100:.0f} cm',
-                    ha='center', va='center', fontsize=7, color='white', zorder=9)
+                    ha='center', va='center', fontsize=fst.pt(7), color='white', zorder=9)
 
-        ax.set_xlabel('x  (m)', fontsize=10)
-        ax.set_ylabel('y  (m)', fontsize=10)
+        ax.set_xlabel('x  (m)')
+        ax.set_ylabel('y  (m)')
         ax.grid(True, color='white', alpha=0.08, linewidth=0.4)
-        ax.legend(fontsize=8, loc='upper right', framealpha=0.7)
+
+    # One shared, de-duplicated legend below both panels (the two maps mark the
+    # same takeoff/light/obstacle, so a per-panel legend just repeated itself).
+    handles, labels = ax_raw.get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc='outside lower center',
+                   ncol=len(handles), framealpha=0.8)
 
     ts_str = ''
     if 'timestamp_ms' in df.columns:
@@ -712,7 +758,7 @@ def plot_survey_map(df: pd.DataFrame, title: str,
         ts_str = f'  |  {(t1-t0)/1000:.1f} s'
     if title:
         fig.suptitle(f'{title}{ts_str}  —  bin {bin_m*100:.0f} cm',
-                     fontsize=12, fontweight='bold')
+                     fontweight='bold')
     return fig
 
 
@@ -817,8 +863,15 @@ def main():
     parser.add_argument(
         '--waypoint', type=int, default=None, metavar='N',
         help='Restrict the data to a single wpNav.wpIdx value before plotting.')
+    parser.add_argument(
+        '--page-frac', type=float, default=1.0, metavar='F', dest='page_frac',
+        help='On-page width as a fraction of \\textwidth (5 in). Figures are '
+             'drawn at scale 1 so saved PNGs render at the right on-page size.')
     parser.set_defaults(show_gradient=True, per_waypoint=False)
     args = parser.parse_args()
+
+    global PAGE_FRAC
+    PAGE_FRAC = args.page_frac
 
     if args.csv:
         csv_path = Path(args.csv)
@@ -902,11 +955,11 @@ def main():
 
     saved_named = False
     if args.out_ts and fig_ts is not None:
-        fig_ts.savefig(args.out_ts, dpi=args.dpi, bbox_inches='tight')
+        fig_ts.savefig(args.out_ts, dpi=args.dpi)
         print(f"Saved: {args.out_ts}  (dpi {args.dpi})")
         saved_named = True
     if args.out_map and fig_map is not None:
-        fig_map.savefig(args.out_map, dpi=args.dpi, bbox_inches='tight')
+        fig_map.savefig(args.out_map, dpi=args.dpi)
         print(f"Saved: {args.out_map}  (dpi {args.dpi})")
         saved_named = True
 

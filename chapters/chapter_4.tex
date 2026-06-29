@@ -75,7 +75,8 @@ First, we remove the steady ambient component from the signal. Ambient light int
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{figures/dsp_windowing.png}
+    \subfigure[Raw window]{\includegraphics[width=0.47\textwidth]{figures/dsp_windowing_a.png}}\hfill\subfigure[Centred and tapered]{\includegraphics[width=0.47\textwidth]{figures/dsp_windowing_b.png}}\\
+    \subfigure[Spectrum, with and without the window]{\includegraphics[width=0.62\textwidth]{figures/dsp_windowing_c.png}}
     \caption{The two preprocessing steps before the transform, on generated data. (a) The raw window sits high on the ambient baseline, marked by the dashed mean. (b) Subtracting the mean centres the window on zero, and the Hamming taper smoothly forces both ends to zero. (c) On a logarithmic scale, a rectangular window, equivalent to no taper, spreads the tone's energy into wide leakage skirts, whereas the Hamming window confines it close to the true frequency.}
     \label{fig:windowing}
 \end{figure}

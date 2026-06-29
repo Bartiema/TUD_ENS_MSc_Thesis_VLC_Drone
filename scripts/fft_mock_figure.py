@@ -17,11 +17,19 @@ Usage:
     python scripts/fft_mock_figure.py [out.png]
 """
 
+import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst   # 'fs' is used below for the sampling rate
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else "figures/fft_mock.png"
+
+# Included at width=\textwidth. Generate at scale 1 (5 in wide) so text is
+# readable on the page; the PNG is the printed result.
+fst.apply(5.0, frac=1.0, suptitle=9)
 
 ADC_MAX = 4095.0               # 12-bit ADC full scale
 f1, f2 = 150.0, 200.0          # beacon modulation frequencies (Hz)
@@ -43,42 +51,42 @@ spec = np.abs(np.fft.rfft((signal - signal.mean()) * window))
 freqs = np.fft.rfftfreq(N, 1.0 / fs)
 spec /= spec.max()
 
-fig, (axT, axF) = plt.subplots(1, 2, figsize=(11, 4))
+fig, (axT, axF) = plt.subplots(1, 2, figsize=(5.0, 2.6), layout="constrained")
 
 # Time domain (short slice for legibility).
 slice_n = int(0.05 * fs)
-axT.plot(t[:slice_n] * 1e3, signal[:slice_n], color="#1f3b73", lw=1.5)
+axT.plot(t[:slice_n] * 1e3, signal[:slice_n], color="#1f3b73", lw=1.2)
 axT.axhline(ADC_MAX, color="grey", ls="--", lw=1.0)
 axT.text(0.5, ADC_MAX, "ADC saturation (4095)", va="bottom", ha="left",
-         fontsize=8, color="grey")
+         fontsize=fst.pt(7), color="grey")
 axT.set_ylim(0, ADC_MAX * 1.08)
 axT.set_xlabel("Time (ms)")
 axT.set_ylabel("Photodiode reading (ADC counts)")
-axT.set_title("Two beacons seen by one photodiode")
+axT.set_title("Time domain")
 axT.grid(True, alpha=0.3)
 
 # Frequency domain.
 axF.plot(freqs, spec, color="#1f3b73", lw=1.2)
-axF.set_xlim(0, 1000)
-axF.set_ylim(0, 1.3)
+axF.set_xlim(0, 800)
+axF.set_ylim(0, 1.18)
 axF.set_xlabel("Frequency (Hz)")
 axF.set_ylabel("Normalised magnitude")
-axF.set_title("Frequency analysis (FFT magnitude)")
+axF.set_title("Frequency domain (FFT)")
 axF.grid(True, alpha=0.3)
-for f, name, col, tx, ty in [(f1, "beacon 1", "#d1495b", 90, 1.24),
-                             (f2, "beacon 2", "#2a9d8f", 320, 1.06)]:
+# Labels stacked on the right, each pointing left to its peak, so they don't
+# pile up over the two closely-spaced beacons.
+for f, name, col, ty in [(f1, "beacon 1", "#d1495b", 1.02),
+                         (f2, "beacon 2", "#2a9d8f", 0.86)]:
     axF.axvline(f, color=col, ls="--", lw=1.1, alpha=0.85)
-    axF.annotate(f"{name} ({f:.0f} Hz)", xy=(f, 1.0), xytext=(tx, ty),
-                 ha="center", fontsize=9, color=col,
+    axF.annotate(f"{name} ({f:.0f} Hz)", xy=(f, 1.0), xytext=(430, ty),
+                 ha="left", va="center", fontsize=fst.pt(7), color=col,
                  arrowprops=dict(arrowstyle="->", color=col, lw=1.0))
     for k in (3, 5):
-        if f * k <= 1000:
+        if f * k <= 800:
             axF.axvline(f * k, color=col, ls=":", lw=0.8, alpha=0.5)
-axF.text(0.98, 0.93, "dotted: odd harmonics", transform=axF.transAxes,
-         ha="right", fontsize=8, color="grey")
+axF.text(430, 0.46, "dotted: odd harmonics", ha="left", va="center",
+         fontsize=fst.pt(7), color="grey")
 
-fig.suptitle("Synthetic data — illustrates the principle only, not a real measurement",
-             fontsize=10, fontstyle="italic", y=1.02)
-fig.tight_layout()
-fig.savefig(OUT, dpi=300, bbox_inches="tight")
-print(f"Saved -> {OUT}")
+fig.suptitle("Synthetic data — illustrates the principle, not a real measurement",
+             fontstyle="italic")
+fst.save(fig, OUT)

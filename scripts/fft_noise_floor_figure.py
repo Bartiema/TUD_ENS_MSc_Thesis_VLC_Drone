@@ -23,11 +23,19 @@ Usage:
     python scripts/fft_noise_floor_figure.py [out.png]
 """
 
+import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst   # 'fs' is used below for the sample rate
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else "figures/fft_noise_floor.png"
+
+# Included at width=0.9\textwidth. Generate at scale 1 (4.5 in). Axis labels and
+# the italic caption stay ~9 pt; the in-plot annotations are ~7 pt.
+fst.apply(4.5, frac=0.9, tick=8, label=9, title=9, suptitle=9)
 
 rng = np.random.default_rng(7)
 
@@ -72,52 +80,51 @@ median_floor = np.median(spec[mask])
 mean_floor = np.mean(spec[mask])
 snr = peak / median_floor
 
-fig, ax = plt.subplots(figsize=(8.5, 4.2))
+fig, ax = plt.subplots(figsize=(4.5, 2.9))
 ax.semilogy(freqs, spec, color="#1f3b73", lw=1.3, zorder=3)
 
 # Guard band shading.
 gb_lo = (beacon_bin - guard) * df
 gb_hi = (beacon_bin + guard) * df
 ax.axvspan(gb_lo, gb_hi, color="#d1495b", alpha=0.10, zorder=1)
-ax.text((gb_lo + gb_hi) / 2, peak * 1.35, "guard band\n(excluded)",
-        ha="center", va="bottom", fontsize=8, color="#d1495b")
+ax.text((gb_lo + gb_hi) / 2, peak * 1.95, "guard band\n(excluded)",
+        ha="center", va="top", fontsize=fst.pt(7), color="#d1495b")
 
 # Beacon peak.
 ax.annotate(f"beacon peak ({f_beacon:.0f} Hz)",
             xy=(f_beacon, peak), xytext=(f_beacon + 28, peak * 1.0),
-            fontsize=9, color="#1f3b73",
+            fontsize=fst.pt(7), color="#1f3b73",
             arrowprops=dict(arrowstyle="->", color="#1f3b73", lw=1.0))
 
 # Interference spikes.
 ax.annotate("interference spikes\n(motor / mains)",
             xy=(f_spikes[0], spec[int(round(f_spikes[0] / df))]),
             xytext=(f_spikes[0] + 6, peak * 0.5),
-            fontsize=8, color="#9a6700",
+            fontsize=fst.pt(7), color="#9a6700",
             arrowprops=dict(arrowstyle="->", color="#9a6700", lw=0.9))
 
 # Noise floors.
 ax.axhline(mean_floor, color="grey", ls=":", lw=1.3, zorder=2)
-ax.text(fs / 2, mean_floor, " mean floor\n (pulled up by spikes)", va="center",
-        ha="left", fontsize=8, color="grey")
+ax.text(3, mean_floor * 1.12, "mean floor\n(biased by spikes)", va="bottom",
+        ha="left", fontsize=fst.pt(7), color="grey")
 ax.axhline(median_floor, color="#2a9d8f", ls="--", lw=1.3, zorder=2)
-ax.text(fs / 2, median_floor * 0.78, " median floor\n (used for SNR)", va="center",
-        ha="left", fontsize=8, color="#2a9d8f")
+ax.text(3, median_floor * 0.88, "median floor\n(used for SNR)", va="top",
+        ha="left", fontsize=fst.pt(7), color="#2a9d8f")
 
 # SNR annotation.
 ax.annotate("", xy=(f_beacon - 14, peak), xytext=(f_beacon - 14, median_floor),
             arrowprops=dict(arrowstyle="<->", color="black", lw=1.1))
 ax.text(f_beacon - 20, np.sqrt(peak * median_floor),
         f"SNR =\npeak / floor\n$\\approx$ {snr:.0f}",
-        ha="right", va="center", fontsize=9)
+        ha="right", va="center", fontsize=fst.pt(7))
 
 ax.set_xlim(0, fs / 2)
 ax.set_ylim(median_floor * 0.25, peak * 2.2)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Averaged FFT magnitude (log scale)")
-ax.set_title("Synthetic data — illustrates how the SNR is read, not a real measurement",
-             fontsize=10, fontstyle="italic")
+ax.set_title("Synthetic example — how the SNR is read", fontstyle="italic")
 ax.grid(True, which="both", alpha=0.3)
 fig.tight_layout()
-fig.savefig(OUT, dpi=300, bbox_inches="tight")
+fst.save(fig, OUT)
 print(f"Saved -> {OUT}  (peak={peak:.0f}, median floor={median_floor:.0f}, "
       f"mean floor={mean_floor:.0f}, SNR={snr:.1f})")

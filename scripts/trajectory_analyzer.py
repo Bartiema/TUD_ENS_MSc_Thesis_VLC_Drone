@@ -33,6 +33,12 @@ import argparse
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst
+
+# On-page width fraction for the 2D trajectory (overridden by --page-frac).
+PAGE_FRAC = 0.6
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -192,7 +198,9 @@ def create_output_dir():
 
 def save(fig, filename):
     path = os.path.join(OUTPUT_DIR, filename)
-    fig.savefig(path, dpi=300, bbox_inches="tight")
+    # No bbox_inches='tight': it would re-crop wider than figsize and break the
+    # on-page scale of the 2D trajectory figure.
+    fig.savefig(path, dpi=300)
     print(f"  Saved -> {path}")
 
 # =============================================================================
@@ -274,7 +282,7 @@ def pillar_distance(df):
 
 
 def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
-                       graze_margin=0.15):
+                       graze_margin=0.15, frac=None):
     # Contact happens when the body centroid comes within (pillar + balloon radius)
     # of the pillar centre. For the controllers that actually hit the pillar
     # (bearing-only, gradient-only) trim_at_contact cuts the trajectory at the first
@@ -287,28 +295,39 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
         if hit.size:
             df = df.iloc[:hit[0] + 1].reset_index(drop=True)
 
-    fig, ax = plt.subplots(figsize=(12, 10))
+    frac = frac or PAGE_FRAC
+    fst.apply(frac * fst.TEXTWIDTH_IN, frac, tick=7, label=8, title=9, legend=7)
+    _xs = np.concatenate([df["x"].values, [PILLAR_X, TARGET_X]])
+    _ys = np.concatenate([df["y"].values, [PILLAR_Y, TARGET_Y]])
+    _asp = (_ys.max() - _ys.min()) / max(_xs.max() - _xs.min(), 0.1)
+    _w = frac * fst.TEXTWIDTH_IN
+    fig, ax = plt.subplots(figsize=(_w, _w * _asp + 0.45), layout="constrained")
 
     # Static obstacle (pillar) -- drawn first so the trajectory sits on top.
     pillar = Circle((PILLAR_X, PILLAR_Y), PILLAR_R,
                     facecolor="#8D6E63", edgecolor="black", linewidth=1.2,
-                    alpha=0.7, zorder=1, label="Obstacle (pillar)")
+                    alpha=0.7, zorder=1)
     ax.add_patch(pillar)
-    ax.scatter(PILLAR_X, PILLAR_Y, color="black", s=15, zorder=2)
+    ax.scatter(PILLAR_X, PILLAR_Y, color="black", s=8, zorder=2)
+    ax.annotate("pillar", (PILLAR_X - contact_r - 0.12, PILLAR_Y), ha="right",
+                va="center", fontsize=fst.pt(7), color="black", zorder=9)
 
     # Contact distance: the centroid touching this dashed circle means the
     # balloon surface touches the pillar surface (pillar radius + balloon radius).
+    # Labelled inline only when the run actually approaches it (see contact block).
     clearance = Circle((PILLAR_X, PILLAR_Y), contact_r,
                        facecolor="none", edgecolor=COL_CONTACT, linewidth=1.4,
-                       linestyle="--", alpha=0.8, zorder=2,
-                       label="Contact distance (pillar + balloon radius)")
+                       linestyle="--", alpha=0.8, zorder=2)
     ax.add_patch(clearance)
 
-    for phase, color in PHASE_STYLES.items():
-        if (df["phase"] == phase).any():
-            x, y = phase_xy(df, phase)
-            ax.plot(x, y, color=color, linewidth=2.5, alpha=0.85,
-                    label=f"Phase: {phase}")
+    # Only name the phases in the legend when there is more than one; a single
+    # phase run (bearing-only, gradient-only) needs no phase legend entry.
+    present_phases = [p for p in PHASE_STYLES if (df["phase"] == p).any()]
+    multi_phase = len(present_phases) > 1
+    for phase in present_phases:
+        x, y = phase_xy(df, phase)
+        ax.plot(x, y, color=PHASE_STYLES[phase], linewidth=2.5, alpha=0.85,
+                label=f"{phase} phase" if multi_phase else "_nolegend_")
 
     # Highlight the segment where the balloon is in contact with the pillar.
     dist = pillar_distance(df)
@@ -319,8 +338,7 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
         xc[~in_contact] = np.nan
         yc[~in_contact] = np.nan
         ax.plot(xc, yc, color=COL_CONTACT, linewidth=5.0, alpha=0.9,
-                solid_capstyle="round", zorder=4,
-                label="Balloon in contact with pillar")
+                solid_capstyle="round", zorder=4)
 
     # Closest-approach point: only call it out when the balloon actually comes near
     # the pillar -- a contact, or a near-miss within graze_margin of the contact
@@ -330,15 +348,18 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
     # keep-out zone.
     i_min = int(np.argmin(dist))
     if in_contact.any() or dist[i_min] <= contact_r + graze_margin:
-        cx, cy, ct = df["x"].iloc[i_min], df["y"].iloc[i_min], df["time"].iloc[i_min]
+        cx, cy = df["x"].iloc[i_min], df["y"].iloc[i_min]
         balloon = Circle((cx, cy), balloon_r, facecolor=COL_CONTACT, alpha=0.18,
-                         edgecolor=COL_CONTACT, linewidth=1.2, zorder=3,
-                         label="Balloon footprint at closest approach")
+                         edgecolor=COL_CONTACT, linewidth=1.2, zorder=3)
         ax.add_patch(balloon)
+        # Name the dashed keep-out circle only here, where it is meaningful.
+        ax.annotate("contact distance", (PILLAR_X, PILLAR_Y + contact_r + 0.08),
+                    ha="center", va="bottom", fontsize=fst.pt(7),
+                    color=COL_CONTACT, zorder=9)
         verb = "contacts" if in_contact.any() else "grazes"
-        ax.annotate(f"balloon {verb} pillar\n(t = {ct:.0f} s, gap {dist[i_min]-PILLAR_R:.2f} m)",
-                    xy=(cx, cy), xytext=(cx - 2.6, cy + 1.4),
-                    fontsize=9, fontweight="bold", color=COL_CONTACT,
+        ax.annotate(f"balloon {verb} pillar",
+                    xy=(cx, cy), xytext=(cx, cy - 1.9),
+                    ha="center", fontsize=fst.pt(7), fontweight="bold", color=COL_CONTACT,
                     arrowprops=dict(arrowstyle="->", color=COL_CONTACT, lw=1.5),
                     zorder=8)
 
@@ -351,31 +372,40 @@ def plot_2d_trajectory(df, balloon_r=BALLOON_R, trim_at_contact=False,
                      head_width=0.06, head_length=0.06,
                      fc="darkblue", ec="darkblue", alpha=0.6)
 
-    ax.scatter(df["x"].iloc[0],  df["y"].iloc[0],
-               color="green", s=150, marker="o", zorder=5,
-               edgecolors="black", label="Start")
-    ax.scatter(df["x"].iloc[-1], df["y"].iloc[-1],
-               color="red",   s=150, marker="s", zorder=5,
-               edgecolors="black", label="End")
-    ax.scatter(TARGET_X, TARGET_Y,
-               color=COL_SOURCE, s=250, marker="*", zorder=6,
-               edgecolors="black", linewidths=0.8, label="Light source")
+    # Start / end / light source are obvious from their markers, so label them
+    # inline (small text) rather than spending three legend rows on them.
+    x0, y0 = df["x"].iloc[0], df["y"].iloc[0]
+    x1, y1 = df["x"].iloc[-1], df["y"].iloc[-1]
+    ax.scatter(x0, y0, color="green", s=45, marker="o", zorder=5,
+               edgecolors="black")
+    ax.annotate("start", (x0, y0), textcoords="offset points", xytext=(-4, 8),
+                ha="right", fontsize=fst.pt(7), color="black")
+    ax.scatter(x1, y1, color="red", s=45, marker="s", zorder=5,
+               edgecolors="black")
+    ax.annotate("end", (x1, y1), textcoords="offset points", xytext=(8, 2),
+                fontsize=fst.pt(7), color="black")
+    ax.scatter(TARGET_X, TARGET_Y, color=COL_SOURCE, s=90, marker="*", zorder=6,
+               edgecolors="black", linewidths=0.8)
+    ax.annotate("light source", (TARGET_X, TARGET_Y), textcoords="offset points",
+                xytext=(-5, -8), ha="right", va="top", fontsize=fst.pt(7),
+                color="black")
 
     fused = df[df["phase"] == "FUSED"]
     if not fused.empty:
         first = fused.iloc[0]
-        ax.scatter(first["x"], first["y"], s=200, color="white",
-                   edgecolors="black", lw=2, zorder=7,
-                   label=f"Fusion starts (t={first['time']:.1f}s)")
+        ax.scatter(first["x"], first["y"], s=55, color="white",
+                   edgecolors="black", lw=1.5, zorder=7,
+                   label=f"fusion start (t={first['time']:.1f}s)")
 
     ax.set_xlabel("X Position (m)")
     ax.set_ylabel("Y Position (m)")
-    ax.set_title("Blimp 2D Trajectory (Top View)", fontsize=14, fontweight="bold")
-    ax.legend(loc="best", fontsize=12)
+    ax.set_title("Blimp 2D trajectory (top view)", fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.set_aspect("equal")
-
-    plt.tight_layout()
+    # Only the multi-phase (fused) run has anything left worth a legend box; the
+    # single-phase runs are fully described by their inline labels.
+    if ax.get_legend_handles_labels()[1]:
+        ax.legend(loc="lower right", framealpha=0.9)
     return fig
 
 # =============================================================================
@@ -570,7 +600,7 @@ def print_statistics(df):
 # =============================================================================
 
 def main():
-    global OUTPUT_DIR, BALLOON_R
+    global OUTPUT_DIR, BALLOON_R, PAGE_FRAC
 
     parser = argparse.ArgumentParser(
         description="Blimp trajectory visualisation and analysis.")
@@ -592,11 +622,15 @@ def main():
                         help="Trim the 2D trajectory at the first pillar contact "
                              "(use for the bearing-only and gradient-only runs that "
                              "collide with the obstacle).")
+    parser.add_argument("--page-frac", type=float, default=PAGE_FRAC, dest="page_frac",
+                        help="On-page width of the 2D figure as a fraction of "
+                             "\\textwidth (5 in); drawn at scale 1.")
     args = parser.parse_args()
 
     if args.outdir:
         OUTPUT_DIR = os.path.abspath(args.outdir)
     BALLOON_R = args.balloon_r
+    PAGE_FRAC = args.page_frac
 
     print("Blimp Trajectory Visualization and Analysis")
     print("=" * 50)
@@ -613,7 +647,8 @@ def main():
 
     print("Generating 2D trajectory plot...")
     save(plot_2d_trajectory(df, balloon_r=BALLOON_R,
-                            trim_at_contact=args.trim_at_contact),
+                            trim_at_contact=args.trim_at_contact,
+                            frac=args.page_frac),
          "blimp_trajectory_2d.png")
     plt.close("all")
     print("  2D trajectory plot saved")

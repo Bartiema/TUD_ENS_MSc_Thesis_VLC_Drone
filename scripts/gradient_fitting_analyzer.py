@@ -25,8 +25,12 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from scipy.spatial import cKDTree
 from scipy.interpolate import Rbf
+import os
 import sys
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fst
 
 # Output locations are resolved relative to this script so the figures always land
 # in the repo's figures/ tree, no matter what directory the script is run from.
@@ -600,6 +604,11 @@ class GradientFittingAnalyzer:
         # blank). This keeps each panel large while fitting the page.
         n_cols = 2
         n_rows = int(np.ceil(n_methods / n_cols))
+        # This figure is placed height-constrained (~0.86\textheight) and so is
+        # scaled down a lot on the page; enlarge the axis/tick/colourbar text so
+        # it stays readable (the Accepted/Rejected legend below is already sized).
+        plt.rcParams.update({'axes.labelsize': 18, 'xtick.labelsize': 15,
+                             'ytick.labelsize': 15})
         fig = plt.figure(figsize=(7.5 * n_cols, 6.8 * n_rows))
         
         for idx, method in enumerate(self.methods):
@@ -681,7 +690,7 @@ class GradientFittingAnalyzer:
                             f'{method.name}\n'
                             f'Success rate: {result["success_rate"]:.1f}%',
                             fontweight='bold',
-                            fontsize=10
+                            fontsize=22
                         )
             ax.set_aspect('equal')
             ax.grid(True, alpha=0.3)
@@ -740,17 +749,23 @@ class GradientFittingAnalyzer:
         names = [m.name for m in self.methods]
 
         def _save(fig, fname):
-            fig.tight_layout()
             out = OUTPUT_DIR / fname
-            fig.savefig(out, dpi=300, bbox_inches='tight')
+            fig.savefig(out, dpi=300)   # no tight bbox: keep the on-page scale exact
             plt.close(fig)
             print(f"[SUCCESS] Saved {out}")
 
+        # Each bar panel is placed at 0.46\textwidth; draw at scale 1 with small,
+        # readable fonts and short titles (the long descriptions go in the caption).
         def _bar_plot(vals, color, ylabel, title, fmt, fname, ylim=None):
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fst.apply(0.46 * fst.TEXTWIDTH_IN, 0.46, tick=8, label=8, title=8)
+            fig, ax = plt.subplots(figsize=(0.46 * fst.TEXTWIDTH_IN, 2.4),
+                                   layout='constrained')
             bars = ax.bar(range(len(names)), vals, color=color, edgecolor='black')
             ax.set_xticks(range(len(names)))
-            ax.set_xticklabels(names, rotation=45, ha='right')
+            # Number the bars (1..N); the number->method key is given once in the
+            # LaTeX caption so the long method names don't dwarf the small bars.
+            ax.set_xticklabels([str(i + 1) for i in range(len(names))], rotation=0)
+            ax.set_xlabel("Method (see caption)")
             ax.set_ylabel(ylabel)
             ax.set_title(title, fontweight='bold')
             if ylim:
@@ -758,27 +773,28 @@ class GradientFittingAnalyzer:
             ax.grid(True, alpha=0.3, axis='y')
             for b, v in zip(bars, vals):
                 ax.text(b.get_x() + b.get_width() / 2., b.get_height(),
-                        fmt.format(v), ha='center', va='bottom', fontweight='bold')
+                        fmt.format(v), ha='center', va='bottom',
+                        fontsize=fst.pt(6.5), fontweight='bold')
             _save(fig, fname)
 
         # (a) Success rate -- the PRIMARY metric (coverage / availability)
         _bar_plot([self.results[n]['success_rate'] for n in names],
-                  'steelblue', 'Success Rate (%)',
-                  'Coverage: Success Rate\n(primary metric -- gradient must be available)',
-                  '{:.1f}%', 'gradient_method_performance_success_rate.png', ylim=[0, 100])
+                  'steelblue', 'Success rate (%)',
+                  'Coverage / success rate',
+                  '{:.1f}%', 'gradient_method_performance_success_rate.png', ylim=[0, 112])
 
         # (b) Fair accuracy: error on the common-coverage set (points all methods estimate)
         n_common = self.results[names[0]].get('n_common', 0)
         _bar_plot([self.results[n]['common_mean_error'] for n in names],
-                  'coral', 'Mean Angle Error (deg)',
-                  f'Fair Accuracy: Common-Coverage Error\n({n_common} points every method estimates)',
+                  'coral', 'Mean angle error (deg)',
+                  'Common-coverage error',
                   '{:.1f}°', 'gradient_method_performance_common_error.png')
 
         # (c) Same error on each method's OWN coverage -- exposes the coverage artifact:
         #     high-coverage methods look worse only because they are scored on harder points.
         _bar_plot([self.results[n]['mean_angle_error'] for n in names],
-                  'seagreen', 'Mean Angle Error (deg)',
-                  'Own-Coverage Error\n(higher = method also estimates the harder points)',
+                  'seagreen', 'Mean angle error (deg)',
+                  'Own-coverage error',
                   '{:.1f}°', 'gradient_method_performance_own_error.png')
 
         # (d) CDF of common-coverage errors
