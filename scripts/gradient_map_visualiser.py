@@ -49,6 +49,7 @@ REQUIREMENTS
 """
 
 import json
+import os
 import sys
 import re
 import argparse
@@ -59,10 +60,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.ticker as mticker
 from matplotlib.patches import Rectangle
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy.interpolate import griddata
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fs
 
 
 # ---------------------------------------------------------------------------
@@ -811,16 +816,23 @@ def overlay_all_lamps(ax, lamps, freq):
 
 
 def plot_metric_panel(df, freq, metric, lamps, resolution, out_prefix,
-                      show_legend=True, draw_gradient=False):
+                      show_legend=True, draw_gradient=False, frac=0.47):
     """One self-contained panel: max-across-sensors <metric> field.
 
     Gradient arrows are off by default: on the raw bench magnitude the
     per-cell direction estimates are unreliable, so the clean heatmap is
     left to carry the spatial-separation message on its own.
+
+    The panel keeps its native 5.2x5.0 in composition (marker and scatter
+    sizes unchanged); figstyle.apply() enlarges only the text so it reads at
+    ~8-9 pt once LaTeX scales the panel to its on-page width (frac*textwidth).
     """
+    # Colourbar labels kept short: the "maximum across the sixteen sensors" is
+    # stated in the caption, and a longer rotated label overflows the (enlarged)
+    # colourbar height and clips.
     col, cmap, cbar = {
-        "snr":       ("snr",       "viridis", "SNR (max across sensors)"),
-        "magnitude": ("magnitude", "inferno", "FFT magnitude (max across sensors)"),
+        "snr":       ("snr",       "viridis", "SNR"),
+        "magnitude": ("magnitude", "inferno", "FFT magnitude"),
     }[metric]
     if col not in df.columns:
         return
@@ -828,12 +840,22 @@ def plot_metric_panel(df, freq, metric, lamps, resolution, out_prefix,
     grp = sub.groupby(["x", "y"])[col].max().reset_index()
     pts_x, pts_y, pts_z = grp["x"].values, grp["y"].values, grp[col].values
 
-    fig, ax = plt.subplots(figsize=(5.2, 5.0))
+    FIG_W, FIG_H = 5.2, 5.0
+    fs.apply(FIG_W, frac)
+
+    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H), layout="constrained")
     plot_heatmap(ax, pts_x, pts_y, pts_z, cmap=cmap, title="",
                  scatter_label="Measured")
     sm = ScalarMappable(norm=Normalize(pts_z.min(), pts_z.max()), cmap=cmap)
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label=cbar, fraction=0.046, pad=0.04)
+    cb = fig.colorbar(sm, ax=ax, label=cbar, fraction=0.046, pad=0.04)
+    cb.set_label(cbar, fontsize=fs.pt(9))
+    cb.ax.tick_params(labelsize=fs.pt(8))
+    # Magnitude ticks run to tens of thousands; a compact "k" format keeps them
+    # narrow so they don't push the colourbar label off the right edge.
+    if metric == "magnitude":
+        cb.ax.yaxis.set_major_formatter(
+            mticker.FuncFormatter(lambda v, _pos: f"{v/1000:.0f}k" if v else "0"))
 
     # WLS gradient arrows overlaid directly on the field (off by default)
     if draw_gradient and len(pts_x) >= MIN_MAP_POINTS:
@@ -848,15 +870,19 @@ def plot_metric_panel(df, freq, metric, lamps, resolution, out_prefix,
                   label="WLS gradient")
 
     overlay_all_lamps(ax, lamps, freq)
-    ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+    # plot_heatmap sets small fixed font sizes for its many other (non-thesis)
+    # callers; override them here so the panel text scales with the page.
+    ax.set_xlabel("x (m)", fontsize=fs.pt(9))
+    ax.set_ylabel("y (m)", fontsize=fs.pt(9))
+    ax.tick_params(labelsize=fs.pt(8))
     ax.set_aspect("equal")
     if show_legend:
-        ax.legend(fontsize=7, loc="upper right", framealpha=0.85)
+        ax.legend(fontsize=fs.pt(8), loc="upper right", framealpha=0.85)
 
     out_path = Path(f"{out_prefix}_panel_{freq:.0f}hz_{metric}.png")
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    # No 'tight' crop: it would change the saved width and break the scale.
+    fs.save(fig, out_path, dpi=300)
     plt.close(fig)
-    print(f"  Panel saved: '{out_path}'")
 
 
 # ---------------------------------------------------------------------------
@@ -907,6 +933,9 @@ Examples:
     parser.add_argument("--panel-arrows", action="store_true",
                     help="Overlay WLS gradient arrows on the thesis panels "
                          "(off by default; unreliable on raw bench magnitude)")
+    parser.add_argument("--page-frac", type=float, default=0.47, dest="page_frac",
+                    help="On-page width of each thesis panel as a fraction of "
+                         "\\textwidth (controls text scaling; default 0.47)")
     args = parser.parse_args()
     if args.only_panels:
         args.panels = True
@@ -1004,15 +1033,15 @@ Examples:
     if args.panels:
         print("\n=== Thesis panels (single-axes, for LaTeX composition) ===")
         metrics = (["snr"] if has_snr else []) + ["magnitude"]
-        first = True
         for freq in frequencies:
             for metric in metrics:
-                # Legend on the first panel only; caption explains the rest.
+                # No legend: the LaTeX caption explains the star/dot markers, and
+                # a legend box obscures part of the field.
                 plot_metric_panel(df, freq, metric, lamps,
                                   args.resolution, out_prefix,
-                                  show_legend=first,
-                                  draw_gradient=args.panel_arrows)
-                first = False
+                                  show_legend=False,
+                                  draw_gradient=args.panel_arrows,
+                                  frac=args.page_frac)
 
     # -------------------------------------------------------------------
     # Figure 2: gradient comparison across all variants

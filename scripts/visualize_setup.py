@@ -9,16 +9,34 @@ Top-down 2-D diagram of the flight setup:
 Edit the SETUP section below, then:
     python visualize_setup.py
     python visualize_setup.py --save        # saves setup.pdf next to this script
+
+Thesis figures (page-accurate text via figstyle, see scripts/figstyle.py):
+    python visualize_setup.py --page-frac 0.50 \
+        --out figures/real_life_setup_plot_no_obstacle.png
+    python visualize_setup.py --obstacle --page-frac 0.60 \
+        --out figures/real_life_setup_plot_with_obstacle.png
 """
 
 import argparse
 import math
+import os
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import figstyle as fs
+
+# Native canvas size. Near-square to match the (equal-aspect) content so the
+# saved PNG needs no tight crop -- which would change its width and break the
+# figstyle scale math. figstyle.apply() enlarges only the text so it stays
+# readable after LaTeX scales the figure down to its on-page width.
+FIG_W = 7.0
+FIG_H = 6.0
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SETUP — edit this section to match your physical arrangement
@@ -38,10 +56,19 @@ TAKEOFF = (0.0, 0.0)
 #                     (0 = +x / east, 90 = +y / north, 180 = -x / west …)
 #   cone              half-angle of the beam in degrees  (e.g. 40 → 80° total)
 #   reach             visual length of the cone (metres)
-#   label             text shown next to the light
+#   label             text shown next to the light (kept short; the legend
+#                     already says "Light source")
+#   label_dx/dy       label offset from the star (metres)
+#   label_ha/va       label anchor (default centred above the star)
 LIGHTS = [
-    dict(pos=(2.90, 1.80), direction=240, cone=35, reach=3.0, label='Light  170 Hz'),
-    dict(pos=(3.2, 0.20), direction=180, cone=35, reach=3.0, label='Light  150 Hz'),
+    # 170 Hz beacon (top-right): label to the star's right so it stays clear of
+    # the top-left legend (which is widest at small page fractions).
+    dict(pos=(2.90, 1.80), direction=240, cone=35, reach=3.0, label='170 Hz',
+         label_dx=0.12, label_dy=0.0, label_ha='left', label_va='center'),
+    # 150 Hz beacon (far-right edge): anchor the label to the star's left so it
+    # does not spill past the right axis.
+    dict(pos=(3.2, 0.20), direction=180, cone=35, reach=3.0, label='150 Hz',
+         label_dx=0.05, label_dy=0.08, label_ha='right', label_va='bottom'),
 ]
 
 # Obstacles — rectangular columns:
@@ -53,12 +80,18 @@ OBSTACLES = [
     # dict(cx=2.15, cy=0.80, w=0.20, d=0.25, label='Obstacle'),
 ]
 
+# Obstacle drawn when --obstacle is passed (Chapter 6 obstacle experiment).
+# Same box used in the real obstacle flights: set into the route to the beacon
+# and a little to one side.
+OBSTACLE = dict(cx=2.15, cy=0.80, w=0.20, d=0.25, label='Obstacle')
+
 # ══════════════════════════════════════════════════════════════════════════════
 
 
 # ── Drawing helpers ───────────────────────────────────────────────────────────
 
-def _draw_light(ax, pos, direction_deg, cone_deg, reach, label):
+def _draw_light(ax, pos, direction_deg, cone_deg, reach, label,
+                label_dx=0.0, label_dy=0.10, label_ha='center', label_va='bottom'):
     """Draw a light source: star marker, filled cone, centre-line, label."""
     x, y = pos
     dir_rad  = math.radians(direction_deg)
@@ -91,9 +124,10 @@ def _draw_light(ax, pos, direction_deg, cone_deg, reach, label):
     ax.plot(x, y, marker='*', markersize=20, markeredgewidth=1.2,
             color='yellow', markeredgecolor='darkorange', zorder=5)
 
-    # Label
-    ax.text(x, y + 0.07, label, ha='center', va='bottom',
-            fontsize=9, color='darkorange', fontweight='bold', zorder=6)
+    # Label — placement controlled per-light so it stays inside the axes and
+    # clear of the legend (see the LIGHTS dict).
+    ax.text(x + label_dx, y + label_dy, label, ha=label_ha, va=label_va,
+            fontsize=fs.pt(9), color='darkorange', fontweight='bold', zorder=6)
 
 
 def _draw_obstacle(ax, cx, cy, w, d, label):
@@ -105,10 +139,10 @@ def _draw_obstacle(ax, cx, cy, w, d, label):
     ax.add_patch(rect)
     if label:
         ax.text(cx, cy + d / 2 + 0.04, label,
-                ha='center', va='bottom', fontsize=8,
+                ha='center', va='bottom', fontsize=fs.pt(8),
                 color='#cccccc', zorder=5)
     ax.text(cx, cy, f'{w*100:.0f}×{d*100:.0f} cm',
-            ha='center', va='center', fontsize=7,
+            ha='center', va='center', fontsize=fs.pt(7),
             color='white', zorder=5)
 
 
@@ -118,7 +152,7 @@ def _draw_takeoff(ax, pos):
     ax.plot(x, y, marker='+', markersize=18, markeredgewidth=2.5,
             color='cyan', zorder=5, label='Takeoff / origin')
     ax.text(x + 0.06, y + 0.06, f'({x:.2f}, {y:.2f})',
-            fontsize=8, color='cyan', zorder=6)
+            fontsize=fs.pt(8), color='cyan', zorder=6)
 
 
 def _draw_area(ax, area):
@@ -135,22 +169,26 @@ def _draw_area(ax, area):
     ym = (area['y_min'] + area['y_max']) / 2
     ax.annotate(f"{area['x_max'] - area['x_min']:.1f} m",
                 xy=(xm, area['y_min']), xytext=(xm, area['y_min'] - 0.18),
-                ha='center', fontsize=8, color='#888888',
+                ha='center', fontsize=fs.pt(8), color='#888888',
                 arrowprops=None)
     ax.annotate(f"{area['y_max'] - area['y_min']:.1f} m",
                 xy=(area['x_min'], ym), xytext=(area['x_min'] - 0.22, ym),
-                ha='right', va='center', fontsize=8, color='#888888',
+                ha='right', va='center', fontsize=fs.pt(8), color='#888888',
                 rotation=90)
 
 
 # ── Main figure ───────────────────────────────────────────────────────────────
 
 def build_figure(area=AREA, takeoff=TAKEOFF,
-                 lights=None, obstacles=None) -> plt.Figure:
+                 lights=None, obstacles=None, frac=0.5) -> plt.Figure:
     lights    = lights    or LIGHTS
-    obstacles = obstacles or OBSTACLES
+    obstacles = obstacles if obstacles is not None else OBSTACLES
 
-    fig, ax = plt.subplots(figsize=(10, 6), layout='constrained')
+    # Enlarge text so it reads at ~8-9 pt once LaTeX scales the figure to its
+    # on-page width (frac * textwidth). Composition is unchanged.
+    fs.apply(FIG_W, frac)
+
+    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H), layout='constrained')
     fig.patch.set_facecolor('#0d0d1a')
     ax.set_facecolor('#12122a')
 
@@ -176,31 +214,41 @@ def build_figure(area=AREA, takeoff=TAKEOFF,
     # Lights
     for light in lights:
         _draw_light(ax, light['pos'], light['direction'],
-                    light['cone'], light['reach'], light.get('label', ''))
+                    light['cone'], light['reach'], light.get('label', ''),
+                    label_dx=light.get('label_dx', 0.0),
+                    label_dy=light.get('label_dy', 0.10),
+                    label_ha=light.get('label_ha', 'center'),
+                    label_va=light.get('label_va', 'bottom'))
 
-    # Legend proxy artists
+    # Legend proxy artists — only the two markers. The obstacle box is labelled
+    # in-plot and the light cone is self-evident, so leaving them out keeps the
+    # legend small enough to sit in the top-left corner without crowding.
     legend_handles = [
         mlines.Line2D([], [], marker='*', color='yellow', markeredgecolor='darkorange',
                       markersize=12, linewidth=0, label='Light source'),
         mlines.Line2D([], [], marker='+', color='cyan', markersize=12,
                       markeredgewidth=2, linewidth=0, label='Takeoff / origin'),
-        mpatches.Patch(facecolor='#444444', edgecolor='#cccccc',
-                       linewidth=1.5, label='Obstacle'),
-        mpatches.Patch(facecolor='yellow', alpha=0.2, edgecolor='gold',
-                       linestyle='--', label='Light cone'),
     ]
-    ax.legend(handles=legend_handles, loc='lower right', fontsize=9,
+    ax.legend(handles=legend_handles, loc='upper left', fontsize=fs.pt(8),
               framealpha=0.6, facecolor='#1a1a2e', labelcolor='white')
 
-    ax.set_xlabel('x  (m) — forward', fontsize=10, color='white')
-    ax.set_ylabel('y  (m) — left',    fontsize=10, color='white')
+    ax.set_xlabel('x  (m) — forward', fontsize=fs.pt(9), color='white')
+    ax.set_ylabel('y  (m) — left',    fontsize=fs.pt(9), color='white')
     ax.tick_params(colors='white')
     for spine in ax.spines.values():
         spine.set_edgecolor('#555555')
 
+    # A little extra headroom at the top so the above-beacon labels are not
+    # clipped against the axis frame (only when limits are auto-fit).
+    if not area:
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+        ax.set_xlim(x0, x1 + 0.45)
+        ax.set_ylim(y0, y1 + 0.30)
+
     ax.set_aspect('equal')
-    fig.suptitle('Flight setup — top-down view', fontsize=13,
-                 fontweight='bold', color='white')
+    # No suptitle: the LaTeX caption describes the figure (thesis convention),
+    # and a large scaled title would clip on the narrow on-page slot.
     return fig
 
 
@@ -210,11 +258,21 @@ def main():
     parser = argparse.ArgumentParser(description='Visualise the drone flight setup')
     parser.add_argument('--save', action='store_true',
                         help='Save as setup.pdf next to this script.')
+    parser.add_argument('--obstacle', action='store_true',
+                        help='Draw the Chapter 6 obstacle box.')
+    parser.add_argument('--page-frac', type=float, default=0.5, dest='page_frac',
+                        help='On-page width as a fraction of \\textwidth '
+                             '(controls text scaling; default 0.5).')
+    parser.add_argument('--out', default=None, metavar='FILE.png',
+                        help='Save a page-accurate PNG to this path.')
     args = parser.parse_args()
 
-    fig = build_figure()
+    obstacles = [OBSTACLE] if args.obstacle else []
+    fig = build_figure(obstacles=obstacles, frac=args.page_frac)
 
-    if args.save:
+    if args.out:
+        fs.save(fig, args.out, dpi=300, facecolor=fig.get_facecolor())
+    elif args.save:
         out = Path(__file__).parent / 'setup.pdf'
         fig.savefig(out, bbox_inches='tight', facecolor=fig.get_facecolor())
         print(f"Saved: {out}")

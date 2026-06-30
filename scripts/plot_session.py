@@ -126,6 +126,7 @@ PANELS = [
         ],
         'yticks': (list(NAV_STATES.keys()),
                    [f"{k}: {v}" for k, v in NAV_STATES.items()]),
+        'legend_loc': 'upper left',
     },
     {
         'key': 'snr',
@@ -332,7 +333,7 @@ def plot_timeseries(df: pd.DataFrame, title: str, panel_keys=None,
             ax.axvline(tx, color='black', lw=0.8, linestyle=':', alpha=0.5)
 
         if len(panel['series']) > 1 or panel.get('gradient_accept'):
-            ax.legend(loc='upper right', framealpha=0.7)
+            ax.legend(loc=panel.get('legend_loc', 'upper right'), framealpha=0.7)
 
     if transitions:
         ax0 = axes[0]

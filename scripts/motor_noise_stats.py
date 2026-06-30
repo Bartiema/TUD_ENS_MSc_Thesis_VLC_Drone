@@ -127,10 +127,11 @@ def fmt_latex(mean, std):
 
 # ── Plot ──────────────────────────────────────────────────────────────────────
 
-def make_plot(session_data: dict, out_path: str):
+def make_plot(session_data: dict, out_path: str, frac: float = 0.85):
     """
     session_data: {session_key: {config: stats_dict}}
     session_key in ('bare', 'hw')
+    frac: on-page width as a fraction of \\textwidth (controls text scaling).
     """
     try:
         import matplotlib
@@ -142,13 +143,24 @@ def make_plot(session_data: dict, out_path: str):
         print("matplotlib not installed — skipping plot.", file=sys.stderr)
         return
 
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import figstyle as fs
+
+    # Native canvas: enlarge only the text so it reads at ~8-9 pt once LaTeX
+    # scales the figure to its on-page width (frac * textwidth). The on-page
+    # width is fixed by \includegraphics, so a taller canvas just buys vertical
+    # room for the (now larger) titles and axis labels without shrinking text.
+    FIG_W, FIG_H = 9.0, 5.2
+    fs.apply(FIG_W, frac)
+
     available_sessions = [s for s in ('bare', 'hw') if s in session_data]
     n_sessions = len(available_sessions)
 
     fig, axes = plt.subplots(
         1, 2,
-        figsize=(9, 4.5),
-        gridspec_kw={'width_ratios': [5, 1.4], 'wspace': 0.08},
+        figsize=(FIG_W, FIG_H),
+        gridspec_kw={'width_ratios': [5, 1.4]},
+        layout='constrained',
     )
     ax, ax_ext = axes
 
@@ -174,11 +186,11 @@ def make_plot(session_data: dict, out_path: str):
     ax.set_ylabel('SNR (mean ± std)')
     ax.set_title('Motor noise vs. N motors')
     ax.spines[['top', 'right']].set_visible(False)
-    ax.legend(frameon=False, fontsize=9)
+    ax.legend(frameon=False, fontsize=fs.pt(8), loc='upper center')
     ax.yaxis.set_minor_locator(mticker.MultipleLocator(1))
 
     # ── Right panel: m4ext vibration-isolation comparison ─────────────────
-    ax_ext.set_title('Vib. isolation\n(4 motors)', fontsize=9)
+    ax_ext.set_title('Vib. isolation\n(4 motors)', fontsize=fs.pt(9))
     ext_x = np.arange(n_sessions)
     for si, session in enumerate(available_sessions):
         sdata = session_data[session]
@@ -198,7 +210,7 @@ def make_plot(session_data: dict, out_path: str):
                        error_kw=dict(elinewidth=1, ecolor='#333333'))
 
     ax_ext.set_xticks(ext_x)
-    ax_ext.set_xticklabels([s[:2].upper() for s in available_sessions], fontsize=9)
+    ax_ext.set_xticklabels([s[:2].upper() for s in available_sessions], fontsize=fs.pt(8))
     ax_ext.set_ylabel('')
     ax_ext.yaxis.set_tick_params(labelleft=False)
     ax_ext.spines[['top', 'right']].set_visible(False)
@@ -208,12 +220,13 @@ def make_plot(session_data: dict, out_path: str):
     # Legend for right panel
     solid_patch  = mpatches.Patch(facecolor='grey', alpha=0.85, hatch='//', label='Ext. wires')
     faded_patch  = mpatches.Patch(facecolor='grey', alpha=0.35,             label='Close-mount')
-    ax_ext.legend(handles=[solid_patch, faded_patch], fontsize=7,
-                  frameon=False, loc='upper right')
+    ax_ext.legend(handles=[solid_patch, faded_patch], fontsize=fs.pt(7),
+                  frameon=False, loc='upper left')
 
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=300, bbox_inches='tight')
-    print(f"Saved plot: {out_path}")
+    # Constrained layout (set at figure creation) fits the larger titles and
+    # axis labels within the canvas. Save at the native width (no 'tight' crop)
+    # so the figstyle scale holds.
+    fs.save(fig, out_path, dpi=300)
     plt.close(fig)
 
 
@@ -232,6 +245,9 @@ def main():
                     help='Seconds to discard at the start of each run (default 2.0).')
     ap.add_argument('--plot', default=None, metavar='FILE.png',
                     help='Save bar chart to this PNG file (300 dpi).')
+    ap.add_argument('--page-frac', type=float, default=0.85, dest='page_frac',
+                    help='On-page width as a fraction of \\textwidth '
+                         '(controls text scaling; default 0.85).')
     ap.add_argument('--out',  default=None, metavar='FILE.csv',
                     help='Save summary statistics to this CSV.')
     args = ap.parse_args()
@@ -325,7 +341,8 @@ def main():
 
     # ── Plot ──────────────────────────────────────────────────────────────
     if args.plot:
-        make_plot({k: sessions[k] for k in session_keys}, args.plot)
+        make_plot({k: sessions[k] for k in session_keys}, args.plot,
+                  frac=args.page_frac)
 
 
 if __name__ == '__main__':

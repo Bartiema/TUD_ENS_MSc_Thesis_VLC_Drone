@@ -12,8 +12,9 @@
 # them: `nix develop` then run this).
 #
 # Figures deliberately NOT regenerated here (kept as-is, see the thesis figure
-# list): teensy_test_setup, simulation_setup, real_life_setup*, new/old_pcb_*,
-# motor_noise, teensy_multi_freq_tests/*.
+# list): teensy_test_setup, simulation_setup, new/old_pcb_*, the photographs,
+# and the per-sensor / gradient / stats diagnostic plots under
+# teensy_multi_freq_tests (only the four thesis panels are regenerated).
 
 set -euo pipefail
 
@@ -107,6 +108,29 @@ $PS $AB/navigate_session_5x5_cells_dark_no_obstacle.csv \
     --panels state,snr --no-title --page-frac 0.95 --dpi 300 \
     --out-ts $AO/dark_snr_plot.png \
     --out-map $AO/dark_traversal_plot.png
+
+echo "== Flight-setup top-down diagrams (visualize_setup.py) =="
+# no-obstacle goes in Ch5 at 0.50 textwidth; with-obstacle in Ch6 at 0.60.
+$PY $S/visualize_setup.py --page-frac 0.50 \
+    --out figures/real_life_setup_plot_no_obstacle.png
+$PY $S/visualize_setup.py --obstacle --page-frac 0.60 \
+    --out figures/real_life_setup_plot_with_obstacle.png
+
+echo "== Motor-noise SNR bars (motor_noise_stats.py, 0.85 textwidth) =="
+$PY $S/motor_noise_stats.py \
+    --bare data/motor_noise/bare --hw data/motor_noise/hw \
+    --page-frac 0.85 --plot figures/motor_noise.png
+
+echo "== Teensy dual-frequency thesis panels (0.47 textwidth each) =="
+# Four single-axes panels (150/200 Hz x SNR/magnitude) composed in LaTeX.
+# Lamp grid positions are authoritative: 150 Hz on the right, 200 Hz on the
+# left (see the multibeacon test-data notes); legend on the first panel only.
+TM=data/teensy_multi_freq_tests ; TMO=figures/teensy_multi_freq_tests
+$PY $S/gradient_map_visualiser.py \
+    $TM/map_150_200hz_6x10_20260324_154500.csv \
+    --only-panels --page-frac 0.47 \
+    --lamps "150:4.75,-0.3  200:0.5,-0.3" \
+    --out-prefix $TMO/map_150_200hz_6x10_20260324_154500
 
 echo ""
 echo "All figures regenerated under figures/."
