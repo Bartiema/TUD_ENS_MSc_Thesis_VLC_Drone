@@ -222,6 +222,21 @@ where $\hat{\theta}_i = \operatorname{atan2}(\hat{b}_i, \hat{a}_i)$ is the estim
 
 Directly comparing average angular error using the same number of data points can be misleading, because the methods estimate the gradient in different ways and therefore require different amounts of local map data before they can produce a valid estimate. Some methods return an estimate almost everywhere, whereas others withhold an estimate when the local map is sparse or poorly fitted. As a result, the average error for each method is computed only over the locations where that method produces a valid estimate, rather than over the same set of time steps for all methods. Figure~\ref{fig:grad-own-error} reports this own-coverage error for each method.
 
+\begin{figure}[!htb]
+    \centering
+    \subfigure[Success rate: the share of map cells where the method returns a usable estimate.]{%
+        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_success_rate.png}%
+        \label{fig:grad-success}}\hfill
+    \subfigure[Own-coverage error: mean angular error over each method's own valid cells.]{%
+        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_own_error.png}%
+        \label{fig:grad-own-error}}\\
+    \subfigure[Common-coverage error: mean angular error over the 284 cells that every method estimates.]{%
+        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_common_error.png}%
+        \label{fig:grad-common}}
+    \caption{Coverage and accuracy of the five gradient estimation methods on the reference map. The bars are numbered: (1)~Ordinary Least Squares, (2)~Weighted Least Squares, (3)~RANSAC, (4)~Polynomial Surface, (5)~Finite Differences. (a) the share of cells where each method returns a usable estimate; (b) the mean angular error over each method's own valid cells; (c) the mean angular error over the common set of cells that every method estimates. Accuracy is measured as the angular error against the straight-to-source direction.}
+    \label{fig:gradient-comparison}
+\end{figure}
+
 While angular accuracy is important for drone navigation, the coverage of a gradient estimator is also critical. We therefore report an additional coverage metric, defined as the estimation success rate. For each estimator, we divide the number of map cells where it produces a valid gradient estimate by the total number of cells in the map. Figure~\ref{fig:grad-success} reports this success rate, the ratio of the map over which each estimator can provide a usable navigation direction.
 
 To provide a fairer comparison of angular accuracy, we also evaluate the estimators on the common set of map cells where all candidate estimators return valid results, which Figure~\ref{fig:grad-common} reports. In this analysis, a cell is included only if every estimator produces a valid gradient estimate at that location. This avoids comparing methods over different parts of the map and isolates the accuracy difference among estimators by evaluating them under the same spatial conditions.
@@ -244,22 +259,6 @@ Figure~\ref{fig:gradient-directions} provides a qualitative view of the spatial 
 \end{figure}
 
 The figure shows that weighted least squares provides reliable estimates across most of the environment, including regions where map coverage is sparse. RANSAC rejects many locations, while finite differences remain available almost everywhere but generate noticeably noisier directions. Figure~\ref{fig:gradient-comparison} summarises the results quantitatively.
-
-\begin{figure}[h]
-    \centering
-    \subfigure[Success rate: the share of map cells where the method returns a usable estimate.]{%
-        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_success_rate.png}%
-        \label{fig:grad-success}}\hfill
-    \subfigure[Own-coverage error: mean angular error over each method's own valid cells.]{%
-        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_own_error.png}%
-        \label{fig:grad-own-error}}\\
-    \subfigure[Common-coverage error: mean angular error over the 284 cells that every method estimates.]{%
-        \includegraphics[width=0.46\textwidth]{figures/gradient_analysis/gradient_method_performance_common_error.png}%
-        \label{fig:grad-common}}
-    \caption{Coverage and accuracy of the five gradient estimation methods on the reference map. The bars are numbered: (1)~Ordinary Least Squares, (2)~Weighted Least Squares, (3)~RANSAC, (4)~Polynomial Surface, (5)~Finite Differences. (a) the share of cells where each method returns a usable estimate; (b) the mean angular error over each method's own valid cells; (c) the mean angular error over the common set of cells that every method estimates. Accuracy is measured as the angular error against the straight-to-source direction.}
-    \label{fig:gradient-comparison}
-\end{figure}
-
 
 We consider the success rate first, as it is the most important criterion. As Figure~\ref{fig:grad-success} shows, the finite-difference estimator is available almost everywhere, with a success rate of 99.7\%, and weighted least squares follows closely at 95.9\%. The polynomial surface and ordinary least squares cover 91.9\% and 81.9\% of the map, while RANSAC covers the least, at 72.3\%. Because the gradient's main purpose is to remain available whenever the bearing is lost, this coverage is the metric that matters most.
 
@@ -286,7 +285,7 @@ In the real-world application, when multiple targets are present, the controller
 In a real-world environment, a photodiode reports a single mixed light-intensity value at each timestamp, where signals from all beacons are combined with steady background illumination. By collecting a sequence of intensity measurements over time, the controller can apply a Fourier transform to decompose the mixed signal into its frequency components. Because each beacon is modulated at a distinct frequency, the transformed signal contains an energy peak at each beacon's modulation frequency, and the height of that peak reflects how strongly the corresponding beacon is observed. Figure~\ref{fig:fft-mock} illustrates this process using generated data for two beacons modulated at 150 and 200\,Hz. Their signals overlap in the time domain but separate into distinct peaks in the frequency domain. The Fourier transform output is then passed to a peak-extraction step, which recovers the signal strength at each target frequency, whose implementation details are described in Chapter~\ref{chp:realworld}.
 
 
-\begin{figure}[h]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{figures/fft_mock.png}
     \caption{Separating two beacons by modulation frequency. This is generated data, shown only to illustrate the principle. Two lights are switched on and off as square waves at 150 and 200\,Hz, and one photodiode sees their sum as an ADC reading between 0 and 4095. Left: a short slice of that reading in time, where the two beacons are not separable. Right: the magnitude of its Fourier transform, where each beacon appears as a peak at its own frequency. The dotted lines mark the odd harmonics that a square wave also produces.}

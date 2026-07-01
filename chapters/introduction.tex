@@ -97,12 +97,12 @@ This thesis aims to guide a weight-, size-, and power-constrained micro-drone to
 
 \section{Research Objectives}
 
-This gap---visiting several beacons in succession, and reaching a beacon whose direct light is blocked, neither of which the single-beacon baseline supports---raises three questions about a weight-, size-, and power-constrained drone, which this thesis addresses in turn:
+This gap --- visiting several beacons in succession, and reaching a beacon when obstacles are present --- raises three questions about a weight-, size-, and power-constrained drone, which this thesis addresses in turn:
 
 \begin{enumerate}
-    \item \label{rq:feasibility} Can it carry the necessary light sensing on board and recover a reliable beacon signal in flight?
+    \item \label{rq:feasibility} Can such a drone carry the necessary light sensing on board and recover a reliable beacon signal in flight?
     \item \label{rq:multibeacon} Can it then navigate to several distinct light beacons in succession?
-    \item \label{rq:obstacle} Can it navigate around an obstacle that blocks its line of sight to a beacon?
+    \item \label{rq:obstacle} Can it navigate around an obstacle that obstructs its direct path to a beacon?
 \end{enumerate}
 
 The first question is the foundation of this work: whether a board within the drone's mass budget can recover a reliable beacon signal in flight at all. The second and third are the two goals that the foundation makes possible, and that the prior single-beacon methods could not reach: visiting several beacons in succession, and routing around an obstacle that blocks the path to one of them. Answering all three requires both a sensing platform light enough to fly and a controller that can act on what that platform is able to sense.
